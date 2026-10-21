@@ -1,0 +1,21 @@
+{
+  "name": "お題ボックス - ボードゲームのお題まとめ",
+  "short_name": "お題ボックス",
+  "description": "ほどよく・答えを合わせよう・ワードっち・ぴったんこはんはん などのお題を1つのアプリで。ゲームを切り替えると表示方法とお題が切り替わります。",
+  "lang": "ja",
+  "dir": "ltr",
+  "start_url": "./index.html",
+  "scope": "./",
+  "id": "./",
+  "display": "standalone",
+  "display_override": ["standalone", "fullscreen", "minimal-ui"],
+  "orientation": "any",
+  "background_color": "#0b0d1c",
+  "theme_color": "#0b0d1c",
+  "categories": ["games", "entertainment"],
+  "icons": [
+    { "src": "./icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "./icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "./icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

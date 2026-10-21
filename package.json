@@ -1,0 +1,27 @@
+{
+  "name": "odai-box",
+  "version": "1.1.1",
+  "private": true,
+  "description": "お題ボックス - ボードゲームのお題表示アプリ（統括版）PWA / Capacitor で APK 化",
+  "scripts": {
+    "build:www": "node tools/build-www.mjs",
+    "android:add": "npm run build:www && npx cap add android",
+    "android:sync": "npm run build:www && npx cap sync android",
+    "android:assets": "npx capacitor-assets generate --android --assetPath assets",
+    "android:version": "node tools/set-android-version.mjs",
+    "android:apk": "npm run android:sync && npm run android:version && cd android && ./gradlew assembleDebug",
+    "android:open": "npx cap open android"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.0.0",
+    "@capacitor/app": "^8.0.0",
+    "@capacitor/core": "^8.0.0"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^8.0.0"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

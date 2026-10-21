@@ -1,0 +1,19 @@
+# 依存関係とビルド生成物
+node_modules/
+www/
+android/
+ios/
+.gradle/
+*.log
+
+# 署名鍵は絶対にコミットしない
+*.keystore
+*.jks
+keystore.properties
+
+# OS
+.DS_Store
+Thumbs.db
+
+# 配布用APKは追跡する（.gitignore の android/ に巻き込まれないよう明示）
+!download/odai-box.apk

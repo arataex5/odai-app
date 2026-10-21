@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="format-detection" content="telephone=no,email=no,address=no">
+<meta name="theme-color" content="#0b0d1c">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="お題ボックス">
+<title>お題ボックス</title>
+<link rel="manifest" href="./manifest.json">
+<link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
+<link rel="icon" href="./icons/icon-192.png">
+<link rel="stylesheet" href="./css/style.css">
+<link rel="stylesheet" href="./css/themes.css">
+</head>
+<body>
+<div id="app">
+
+  <!-- ============ ゲーム選択（ハブ） ============ -->
+  <section class="screen" id="screen-hub">
+    <header class="topbar">
+      <div class="tb-left">
+        <button class="chip icon-chip theme-chip btn-theme" aria-label="ダーク／ライト切替">☀</button>
+      </div>
+      <div class="tb-right">
+        <button class="chip icon-chip btn-orient" aria-label="画面の向き">⟳</button>
+      </div>
+    </header>
+    <div class="scroll-area hub-scroll">
+      <div class="hub-hero">
+        <div class="hub-logo"><span class="hl-a">お題</span><span class="hl-b">BOX</span></div>
+        <p class="logo-sub">遊ぶボードゲームを選んでください</p>
+      </div>
+      <div class="hub-grid" id="hub-grid"></div>
+    </div>
+    <div class="title-foot">
+      <button class="btn-install" id="btn-install-open" hidden>
+        <span class="bi-ico" aria-hidden="true">⬇</span>
+        <span class="bi-txt">オフラインで使えるアプリをインストールする</span>
+      </button>
+    </div>
+  </section>
+
+  <!-- ============ ゲームのタイトル画面 ============ -->
+  <section class="screen" id="screen-title">
+    <header class="topbar">
+      <div class="tb-left">
+        <button class="chip" data-hub="1" aria-label="ゲームを切り替える">⇄ ゲーム切替</button>
+        <button class="chip icon-chip theme-chip btn-theme" aria-label="ダーク／ライト切替">☀</button>
+      </div>
+      <div class="tb-right">
+        <button class="chip icon-chip btn-orient" aria-label="画面の向き">⟳</button>
+      </div>
+    </header>
+    <div class="title-hero">
+      <div class="game-logo" id="title-logo"></div>
+      <p class="logo-sub" id="title-sub"></p>
+      <div class="mode-btns" id="title-modes"></div>
+    </div>
+    <div class="title-menu">
+      <button class="chip" data-go="list">お題リスト</button>
+      <button class="chip" data-go="history">履歴</button>
+      <button class="chip" data-go="settings">設定</button>
+    </div>
+  </section>
+
+  <!-- ============ ルール説明 ============ -->
+  <section class="screen" id="screen-rules">
+    <header class="topbar">
+      <div class="tb-left"><button class="chip back" data-back="1">‹ 戻る</button></div>
+      <div class="tb-title">ルール説明</div>
+      <div class="tb-right"><button class="chip icon-chip btn-orient" aria-label="画面の向き">⟳</button></div>
+    </header>
+    <div class="scroll-area" id="rules-scroll"></div>
+  </section>
+
+  <!-- ============ 共通：順番に画面を見せる（役職・お題の確認） ============ -->
+  <section class="screen dark" id="screen-reveal">
+    <header class="topbar">
+      <div class="tb-left"><button class="chip back" data-title-confirm="1">‹ タイトルへ戻る</button></div>
+      <div class="tb-right"><span class="tb-count" id="rv-progress"></span><button class="chip icon-chip btn-orient" aria-label="画面の向き">⟳</button></div>
+    </header>
+    <div class="tap-area" id="rv-tap">
+      <div class="num-stage" id="rv-intro">
+        <p class="num-msg" id="rv-msg"></p>
+        <p class="num-hint" id="rv-hint">画面をタップしてください</p>
+      </div>
+      <div class="num-stage" id="rv-reveal" hidden>
+        <p class="num-name" id="rv-name"></p>
+        <div class="rv-body" id="rv-body"></div>
+      </div>
+    </div>
+    <div class="bottom-bar">
+      <button class="btn-big" id="rv-next" disabled>次の人へ</button>
+    </div>
+  </section>
+
+  <!-- ゲームごとの画面は js/games/*.js がここへ追加します -->
+  <div id="game-screens"></div>
+
+  <!-- ============ お題の追加・削除 ============ -->
+  <section class="screen" id="screen-editor">
+    <header class="topbar">
+      <div class="tb-left"><button class="chip back" data-back="1">‹ 戻る</button></div>
+      <div class="tb-title">お題の追加・削除</div>
+      <div class="tb-right"><button class="chip" id="btn-edit-mode">編集</button></div>
+    </header>
+    <div class="set-tabs seg" id="editor-tabs"></div>
+    <div class="scroll-area" id="editor-scroll">
+      <ul class="list" id="editor-list"></ul>
+      <div class="add-zone">
+        <button class="fab-add" id="btn-add-open" aria-label="お題を追加">＋</button>
+        <form class="add-form" id="add-form" hidden>
+          <div class="af-title" id="af-title">お題を追加</div>
+          <div id="af-fields"></div>
+          <div class="af-btns">
+            <button type="button" class="btn-sub" id="af-cancel">キャンセル</button>
+            <button type="submit" class="btn-main" id="af-save">保存</button>
+          </div>
+        </form>
+      </div>
+    </div>
+    <div class="bottom-bar" id="editor-delete-bar" hidden>
+      <button class="btn-danger" id="btn-delete-selected">選択したお題を削除</button>
+    </div>
+  </section>
+
+  <!-- ============ お題リスト ============ -->
+  <section class="screen" id="screen-list">
+    <header class="topbar">
+      <div class="tb-left"><button class="chip back" data-back="1">‹ 戻る</button></div>
+      <div class="tb-right list-tools">
+        <button class="chip icon-chip" id="btn-filter-fav" aria-label="お気に入りリスト">♡</button>
+        <button class="chip" id="btn-filter-ex">除外リスト</button>
+        <input type="search" class="search" id="list-search" placeholder="検索" autocomplete="off">
+      </div>
+    </header>
+    <div class="set-tabs seg" id="list-tabs"></div>
+    <div class="list-header">
+      <span class="lh-heart">♡</span>
+      <span class="lh-no">No.</span>
+      <span class="lh-main" id="list-col-label">お題</span>
+      <span class="lh-check">除外</span>
+    </div>
+    <div class="scroll-area">
+      <ul class="list" id="topic-list"></ul>
+    </div>
+  </section>
+
+  <!-- ============ 履歴 ============ -->
+  <section class="screen" id="screen-history">
+    <header class="topbar">
+      <div class="tb-left"><button class="chip back" data-back="1">‹ 戻る</button></div>
+      <div class="tb-title">履歴</div>
+      <div class="tb-right">
+        <button class="chip" id="btn-history-clear">全削除</button>
+        <button class="chip icon-chip" id="btn-history-trash" aria-label="選択した履歴を削除">🗑</button>
+      </div>
+    </header>
+    <div class="scroll-area">
+      <ul class="list" id="history-list"></ul>
+    </div>
+  </section>
+
+  <!-- ============ 設定 ============ -->
+  <section class="screen" id="screen-settings">
+    <header class="topbar">
+      <div class="tb-left"><button class="chip back" data-back="1">‹ 戻る</button></div>
+      <div class="tb-title" id="settings-title">設定</div>
+      <div class="tb-right"><button class="chip icon-chip btn-orient" aria-label="画面の向き">⟳</button></div>
+    </header>
+    <div class="scroll-area">
+      <div class="card" id="settings-game" hidden></div>
+      <div class="card">
+        <label class="check-row">
+          <input type="checkbox" id="set-exclude-used">
+          <span class="cbox"></span>
+          <span class="check-text">使用したお題を除外する</span>
+        </label>
+        <label class="check-row">
+          <input type="checkbox" id="set-favorite-only">
+          <span class="cbox"></span>
+          <span class="check-text">お気に入りからランダムにお題を選ぶ</span>
+        </label>
+        <label class="check-row">
+          <input type="checkbox" id="set-use-exclusion">
+          <span class="cbox"></span>
+          <span class="check-text">お題の除外を有効化する</span>
+        </label>
+      </div>
+      <div class="pool-info" id="pool-info"></div>
+      <div class="version-info" id="version-info"></div>
+    </div>
+    <div class="bottom-bar">
+      <button class="btn-big" data-go="editor">お題の追加、削除</button>
+    </div>
+  </section>
+
+  <!-- ============ アプリのインストール（APKダウンロード） ============ -->
+  <div class="sheet" id="install-sheet" hidden>
+    <div class="sheet-box">
+      <h2 class="sheet-title">Androidアプリをインストール</h2>
+      <p class="sheet-lead">通信がなくても使えるアプリ版です。ホーム画面のアイコンから起動できます。<span class="sheet-ver" id="install-version"></span></p>
+      <ol class="sheet-steps">
+        <li><b>ダウンロード</b>を押す（<span id="install-size">数MB</span>）</li>
+        <li>「有害なファイルの可能性」と出たら <b>続行</b> をタップ</li>
+        <li>通知欄またはファイルアプリで <b>odai-box.apk</b> を開く</li>
+        <li>「不明なアプリのインストール」を許可 →「インストール」</li>
+      </ol>
+      <p class="sheet-note">Playストア経由ではないため「Play Protect によりブロック」と出ることがあります。その場合は「詳細」→「無視してインストール」を選んでください。<br>
+      更新するときは、新しい APK をダウンロードしてそのまま上書きインストールしてください（データは残ります）。</p>
+      <div class="sheet-btns">
+        <button class="btn-sub" id="install-close" type="button">閉じる</button>
+        <a class="btn-main" id="install-dl" href="./download/odai-box.apk" download="odai-box.apk">ダウンロード</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 共通：文字入力シート ============ -->
+  <div class="sheet center" id="input-sheet" hidden>
+    <form class="sheet-box" id="input-form" autocomplete="off">
+      <h2 class="sheet-title" id="input-title"></h2>
+      <p class="sheet-lead" id="input-lead"></p>
+      <input type="text" class="input-big" id="input-text" maxlength="40" enterkeyhint="done">
+      <div class="sheet-btns">
+        <button class="btn-sub" id="input-cancel" type="button">キャンセル</button>
+        <button class="btn-main" id="input-ok" type="submit">決定</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- ============ 共通モーダル / お知らせ / トースト ============ -->
+  <div class="modal" id="modal" hidden>
+    <div class="modal-box">
+      <p class="modal-text" id="modal-text"></p>
+      <div class="modal-btns">
+        <button class="btn-sub" id="modal-no">いいえ</button>
+        <button class="btn-main" id="modal-yes">はい</button>
+      </div>
+    </div>
+  </div>
+  <div class="modal" id="info" hidden>
+    <div class="modal-box">
+      <p class="modal-title" id="info-title"></p>
+      <div class="modal-text small" id="info-text"></div>
+      <div class="modal-btns">
+        <button class="btn-main" id="info-ok">閉じる</button>
+      </div>
+    </div>
+  </div>
+  <div class="timeup" id="timeup" hidden>
+    <div class="timeup-box">
+      <p class="timeup-text">TIME UP!</p>
+      <button class="btn-main" id="timeup-ok">OK</button>
+    </div>
+  </div>
+  <div class="toast" id="toast" hidden></div>
+
+</div>
+
+<!-- お題データ（CSV を読めない環境用の埋め込み。tools/embed_csv.py で生成） -->
+<script src="./js/embedded-data.js"></script>
+<!-- 共通の仕組み -->
+<script src="./js/core/store.js"></script>
+<script src="./js/core/timer.js"></script>
+<script src="./js/core/logos.js"></script>
+<script src="./js/core/app.js"></script>
+<!-- ボードゲーム（ここに1行足すとゲームが増えます。README「ボードゲームの追加方法」参照） -->
+<script src="./js/games/hodoyoku.js"></script>
+<script src="./js/games/awaseyou.js"></script>
+<script src="./js/games/wordcchi.js"></script>
+<script src="./js/games/pittanko.js"></script>
+<script src="./js/games/katakanashi.js"></script>
+<!-- PWA -->
+<script src="./js/pwa.js"></script>
+</body>
+</html>
