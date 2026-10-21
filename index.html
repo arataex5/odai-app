@@ -98,6 +98,48 @@
     </div>
   </section>
 
+  <!-- ============ 共通：ポイント結果（フルゲームの各ラウンド後） ============ -->
+  <section class="screen" id="screen-roundres">
+    <header class="topbar">
+      <div class="tb-left"><button class="chip back" data-title-confirm="1">‹ タイトルへ戻る</button></div>
+      <div class="tb-right"><span class="tb-count mode-chip">ポイント結果</span><button class="chip icon-chip btn-orient" aria-label="画面の向き">⟳</button></div>
+    </header>
+    <div class="scroll-area">
+      <p class="who-line" id="rr-round"></p>
+      <div class="rr-head" id="rr-head"></div>
+      <p class="rr-goal" id="rr-goal"></p>
+      <div class="rs-head"><span class="rsh-rank">順位</span><span class="rsh-name">プレイヤー名</span><span class="rsh-pt">今回</span><span class="rsh-total">合計</span></div>
+      <div class="rs-list" id="rr-list"></div>
+    </div>
+    <div class="bottom-bar">
+      <button class="btn-big sub" id="rr-end" style="flex:0 0 36%">ゲーム終了</button>
+      <button class="btn-big" id="rr-next">次のラウンドへ</button>
+    </div>
+  </section>
+
+  <!-- ============ 共通：最終結果（勝利画面） ============ -->
+  <section class="screen" id="screen-victory">
+    <header class="topbar">
+      <div class="tb-left"><button class="chip back" data-title="1">‹ タイトルへ戻る</button></div>
+      <div class="tb-right"><button class="chip icon-chip btn-orient" aria-label="画面の向き">⟳</button></div>
+    </header>
+    <div class="scroll-area">
+      <div class="vc-hero">
+        <div class="vc-confetti" aria-hidden="true"></div>
+        <div class="vc-cup" aria-hidden="true">🏆</div>
+        <p class="vc-label">WINNER</p>
+        <div class="vc-title" id="vc-title"></div>
+        <p class="vc-sub" id="vc-sub"></p>
+      </div>
+      <div class="rs-head"><span class="rsh-rank">順位</span><span class="rsh-name">プレイヤー名</span><span class="rsh-total">合計</span></div>
+      <div class="rs-list" id="vc-list"></div>
+    </div>
+    <div class="bottom-bar">
+      <button class="btn-big sub" data-title="1" style="flex:0 0 36%">タイトルへ</button>
+      <button class="btn-big" id="vc-again">もう一度遊ぶ</button>
+    </div>
+  </section>
+
   <!-- ゲームごとの画面は js/games/*.js がここへ追加します -->
   <div id="game-screens"></div>
 
@@ -267,6 +309,7 @@
 <script src="./js/core/store.js"></script>
 <script src="./js/core/timer.js"></script>
 <script src="./js/core/logos.js"></script>
+<script src="./js/core/illust.js"></script>
 <script src="./js/core/app.js"></script>
 <!-- ボードゲーム（ここに1行足すとゲームが増えます。README「ボードゲームの追加方法」参照） -->
 <script src="./js/games/hodoyoku.js"></script>

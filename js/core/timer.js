@@ -23,32 +23,61 @@
     } catch (e) { return null; }
   }
 
-  function beep(freq, start, dur, vol) {
+  /* 1音を鳴らす。type: 'square' など / 'bell'（倍音つき減衰）/ 'marimba'（柔らかい減衰） */
+  function tone(freq, start, dur, vol, type) {
     var a = audio();
     if (!a) return;
-    var o = a.createOscillator();
-    var g = a.createGain();
-    o.type = 'square';
-    o.frequency.value = freq;
     var t0 = a.currentTime + start;
-    g.gain.setValueAtTime(0.0001, t0);
-    g.gain.exponentialRampToValueAtTime(vol || 0.25, t0 + 0.01);
-    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
-    o.connect(g); g.connect(a.destination);
-    o.start(t0); o.stop(t0 + dur + 0.02);
+    var parts = type === 'bell' ? [[1, 1], [2.76, 0.32], [5.4, 0.12], [8.9, 0.05]]
+      : type === 'marimba' ? [[1, 1], [4, 0.18], [10, 0.04]]
+      : [[1, 1]];
+    parts.forEach(function (p) {
+      var o = a.createOscillator();
+      var g = a.createGain();
+      o.type = (type === 'bell' || type === 'marimba') ? 'sine' : (type || 'square');
+      o.frequency.value = freq * p[0];
+      var v = (vol || 0.25) * p[1];
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.exponentialRampToValueAtTime(v, t0 + 0.008);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur * (type === 'bell' ? 1 / Math.sqrt(p[0]) : 1));
+      o.connect(g); g.connect(a.destination);
+      o.start(t0); o.stop(t0 + dur + 0.05);
+    });
   }
+  function beep(freq, start, dur, vol) { tone(freq, start, dur, vol, 'square'); }
+
+  /* アラーム音（設定で選択）。1回分の長さ(秒)と、鳴らす関数 */
+  var N = { C5: 523.25, D5: 587.33, E5: 659.25, G4: 392.0, G5: 783.99, A5: 880.0, C6: 1046.5, E6: 1318.5, B4: 493.88 };
+  var SOUNDS = {
+    chime: { label: 'チャイム', len: 2.6, play: function () {     // 学校のチャイム風（キンコンカンコン）
+      [[N.E5, 0], [N.C5, 0.5], [N.D5, 1.0], [N.G4, 1.5]].forEach(function (n) { tone(n[0], n[1], 1.6, 0.32, 'bell'); });
+    } },
+    marimba: { label: 'マリンバ', len: 1.6, play: function () {   // ころころ上がるアルペジオ
+      [N.C5, N.E5, N.G5, N.C6, N.G5, N.C6, N.E6].forEach(function (f, i) { tone(f, i * 0.13, 0.5, 0.35, 'marimba'); });
+    } },
+    bell: { label: 'ベル', len: 1.4, play: function () {          // 呼び鈴（チリリン）
+      for (var i = 0; i < 6; i++) tone(i % 2 ? N.A5 : N.E6, i * 0.09, 0.9, 0.22, 'bell');
+    } },
+    digital: { label: '電子音', len: 1.3, play: function () {     // キッチンタイマー風（ピピピピッ）
+      for (var i = 0; i < 4; i++) beep(N.C6 * 2, i * 0.16, 0.09, 0.18);
+      beep(N.C6 * 2, 0.75, 0.25, 0.18);
+    } }
+  };
+  var soundName = 'chime';
+  try { var sv = JSON.parse(global.localStorage.getItem('odai.settings.v1') || '{}').alarm; if (sv && SOUNDS[sv]) soundName = sv; } catch (e) {}
 
   var alarmTimer = null;
-  function playAlarm() {
+  function playAlarm(name, times) {
     stopAlarm();
-    var rounds = 0;
+    var snd = SOUNDS[name || soundName] || SOUNDS.chime;
+    var rounds = 0, max = times || 3;
     function once() {
-      beep(1046, 0, 0.14); beep(1046, 0.2, 0.14); beep(1046, 0.4, 0.14); beep(1568, 0.6, 0.38);
+      snd.play();
       rounds++;
-      if (rounds < 4) alarmTimer = setTimeout(once, 1300);
+      if (rounds < max) alarmTimer = setTimeout(once, snd.len * 1000 + 250);
     }
     once();
-    try { if (navigator.vibrate) navigator.vibrate([400, 150, 400, 150, 800]); } catch (e) {}
+    if (!name) { try { if (navigator.vibrate) navigator.vibrate([400, 150, 400, 150, 800]); } catch (e) {} }
   }
   function stopAlarm() {
     clearTimeout(alarmTimer); alarmTimer = null;
@@ -173,6 +202,10 @@
     stopAlarm: stopAlarm,
     pauseAll: function () { active.slice().forEach(function (t) { t.pause(); }); },
     destroyAll: function () { active.slice().forEach(function (t) { t.destroy(); }); },
-    unlockAudio: audio
+    unlockAudio: audio,
+    sounds: SOUNDS,
+    sound: function () { return soundName; },
+    setSound: function (n) { if (SOUNDS[n]) soundName = n; },
+    preview: function (n) { audio(); playAlarm(n, 1); }
   };
 })(window);

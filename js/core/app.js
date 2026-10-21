@@ -159,7 +159,7 @@
   function goHub() { show('hub', { resetStack: true }); }
   function isPlayScreen(name) {
     if (!name) return false;
-    if (name === 'reveal') return true;
+    if (name === 'reveal' || name === 'roundres') return true;
     return !!(cur && name.indexOf(cur.id + '-') === 0);
   }
 
@@ -587,6 +587,127 @@
   }
 
   /* =========================================================
+     遊び方（モード）と試合の進行
+     ① topic：お題だけ表示  ② quick：クイックスタート（点数なし・親は順番に交代）
+     ③ full ：フルゲーム（〇点先取。ラウンドごとのポイント結果 → 最終結果）
+     ========================================================= */
+  var MODE_INFO = {
+    topic: { label: 'お題だけ表示', sub: 'お題を出すだけ。判定・点数なし', ico: '①' },
+    quick: { label: 'クイックスタート', sub: '点数なしで気軽に。順番に交代', ico: '②' },
+    full:  { label: 'フルゲーム', sub: '〇点先取で勝敗を決める', ico: '③' }
+  };
+
+  /* タイトルの3ボタン。o = { topic:{fn,label?,sub?}, quick:{...}, full:{...} } */
+  function modeButtons(box, o) {
+    var wrap = document.createElement('div');
+    wrap.className = 'mode-list';
+    ['topic', 'quick', 'full'].forEach(function (k) {
+      var d = o[k]; if (!d) return;
+      var info = MODE_INFO[k];
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'btn-mode mode-' + k;
+      b.innerHTML = '<span class="bm-txt"><span class="bm-label">' + esc(d.label || info.label) + '</span>' +
+        '<span class="bm-sub">' + esc(d.sub || info.sub) + '</span></span>';
+      b.addEventListener('click', d.fn);
+      wrap.appendChild(b);
+    });
+    box.appendChild(wrap);
+    return wrap;
+  }
+
+  var M = { gid: null, mode: null, n: 0, names: [], total: [], round: 0, target: 0, unit: 'pt', again: null, label: '' };
+  function startMatch(g, mode, o) {
+    o = o || {};
+    var gs = S.gs(g.id);
+    M.gid = g.id; M.mode = mode;
+    M.n = gs.playerCount || (g.players && g.players.def) || 2;
+    M.names = S.playerNames(M.n);
+    M.total = M.names.map(function () { return 0; });
+    M.round = 0;
+    M.target = gs.target || o.targetDef || 10;
+    M.unit = o.unit || 'pt';
+    M.again = o.again || null;
+    M.label = o.turnLabel || '親';
+    return M;
+  }
+  /* 順番：全員が1回ずつ担当したら最初から */
+  function turnInfo() {
+    var i = M.n ? M.round % M.n : 0;
+    return { idx: i, name: M.names[i], lap: Math.floor(M.round / Math.max(1, M.n)) + 1, pos: i + 1, n: M.n };
+  }
+  /* ラウンドのポイントを加算して結果画面へ。o = { pts:[], head:'html', onNext:fn } */
+  function roundResult(o) {
+    o.pts.forEach(function (p, i) { M.total[i] = (M.total[i] || 0) + (p || 0); });
+    M.lastPts = o.pts.slice();
+    M.onNext = o.onNext;
+    $('rr-round').innerHTML = '第' + (M.round + 1) + 'ラウンド　<b>' + M.target + M.unit + '先取</b>';
+    $('rr-head').innerHTML = o.head || '';
+    var rows = M.names.map(function (nm, i) { return { i: i, nm: nm, pt: o.pts[i] || 0, total: M.total[i] }; });
+    rows.sort(function (a, b) { return b.total - a.total || a.i - b.i; });
+    var max = rows.length ? rows[0].total : 0;
+    var leaders = rows.filter(function (r) { return r.total === max; });
+    var done = max >= M.target && leaders.length === 1;
+    var rank = 0, prev = null;
+    $('rr-list').innerHTML = rows.map(function (r, k) {
+      if (r.total !== prev) { rank = k + 1; prev = r.total; }
+      var w = Math.min(100, Math.round(r.total / Math.max(1, M.target) * 100));
+      return '<div class="rs-row' + (rank === 1 && r.total > 0 ? ' top' : '') + '">' +
+        '<span class="rs-rank">' + rank + '位</span>' +
+        '<span class="rs-name">' + esc(r.nm) + '<span class="rr-bar"><i style="width:' + w + '%"></i></span></span>' +
+        '<span class="rs-pt' + (r.pt ? ' plus' : '') + '">+' + r.pt + '</span>' +
+        '<span class="rs-total">' + r.total + '</span></div>';
+    }).join('');
+    $('rr-goal').innerHTML = done ? '🏆 <b>' + esc(leaders[0].nm) + '</b> さんが ' + M.target + M.unit + ' に到達！'
+      : (max >= M.target ? '同点のトップがいるので延長戦！次のラウンドで決着' : 'トップまであと ' + (M.target - max) + M.unit);
+    $('rr-next').textContent = done ? '最終結果へ' : '次のラウンドへ';
+    M.done = done;
+    show('roundres', { resetStack: true });
+  }
+  function showVictory() {
+    var rows = M.names.map(function (nm, i) { return { i: i, nm: nm, total: M.total[i] || 0 }; });
+    rows.sort(function (a, b) { return b.total - a.total || a.i - b.i; });
+    var max = rows.length ? rows[0].total : 0;
+    var win = rows.filter(function (r) { return r.total === max; });
+    $('vc-title').textContent = win.map(function (r) { return r.nm + 'さん'; }).join('、') + 'の勝利！';
+    $('vc-sub').textContent = (M.round + 1) + 'ラウンド ／ ' + M.target + M.unit + '先取' + (max < M.target ? '（途中で終了）' : '');
+    var rank = 0, prev = null;
+    $('vc-list').innerHTML = rows.map(function (r, k) {
+      if (r.total !== prev) { rank = k + 1; prev = r.total; }
+      return '<div class="rs-row' + (rank === 1 ? ' top' : '') + '"><span class="rs-rank">' + rank + '位</span>' +
+        '<span class="rs-name">' + esc(r.nm) + '</span><span class="rs-total">' + r.total + M.unit + '</span></div>';
+    }).join('');
+    show('victory', { resetStack: true });
+    try { if (global.OdaiTimer) global.OdaiTimer.preview('marimba'); } catch (e) {}
+  }
+
+  /* ゲーム設定画面に置く「〇点先取」カード（フルゲームのときだけ表示） */
+  function targetCard(g, box, o) {
+    o = o || {};
+    var gs = S.gs(g.id);
+    if (!gs.target) gs.target = o.def || 10;
+    var min = o.min || 1, max = o.max || 99, unit = o.unit || 'pt';
+    function render() {
+      box.innerHTML = '<div class="card target-card"><div class="row-line"><label class="row-label nomb">' + esc(o.label || '勝利に必要なポイント') + '</label>' +
+        counterHtml('tg', o.label || '勝利に必要なポイント', gs.target) + '<span class="unit">' + unit + '</span></div>' +
+        (o.hint ? '<p class="row-hint">' + o.hint + '</p>' : '') + '</div>';
+      bindCounter(box, 'tg', { min: min, max: max, get: function () { return gs.target; },
+        apply: function (v) { gs.target = v; S.saveSettings(); render(); } });
+    }
+    render();
+  }
+
+  /* ルール説明用：3つの遊び方の説明 */
+  function modesRule(o) {
+    return '<div class="rule-sec"><h3><span class="badge">★</span>3つの遊び方</h3>' +
+      '<div class="mode-rule">' +
+      ['topic', 'quick', 'full'].map(function (k) {
+        return '<div class="mr-item mr-' + k + '"><span class="mr-ico">' + MODE_INFO[k].ico + '</span>' +
+          '<div><b>' + (o[k + 'Label'] || MODE_INFO[k].label) + '</b><p>' + o[k] + '</p></div></div>';
+      }).join('') + '</div></div>';
+  }
+
+  /* =========================================================
      ctx：ゲームに渡す道具箱
      ========================================================= */
   function ctxOf(g) {
@@ -612,6 +733,16 @@
         return r ? { set: sid, topic: r.topic, relaxed: r.relaxed } : null;
       },
       topicSlot: function (o) { return makeSlot(g, o); },
+      modeButtons: modeButtons,
+      startMatch: function (mode, o) { return startMatch(g, mode, o); },
+      match: function () { return M; },
+      turn: turnInfo,
+      nextTurn: function () { M.round++; },
+      roundResult: roundResult,
+      victory: showVictory,
+      targetCard: function (box, o) { return targetCard(g, box, o); },
+      modesRule: modesRule,
+      ill: global.OdaiIllust,
       changeBar: changeBar,
       refreshTheme: function () { applyGameTheme(); applyColors(); },
       logo: function (key, cls, label, opts) { return global.OdaiLogo ? global.OdaiLogo(key, cls, label, opts) : ''; },
@@ -932,6 +1063,21 @@
           var b = ev.target.closest('.seg-btn'); if (!b) return;
           S.setGs(cur.id, d.key, b.dataset.val); renderGameSettings();
         });
+      } else if (d.type === 'sound') {
+        var cur = S.settings.alarm || 'chime', snd = global.OdaiTimer.sounds;
+        var h2 = '<label class="row-label">' + esc(d.label || 'アラーム音') + '</label><div class="seg sound-seg">';
+        Object.keys(snd).forEach(function (k) {
+          h2 += '<button type="button" class="seg-btn' + (cur === k ? ' on' : '') + '" data-val="' + k + '">' + esc(snd[k].label) + '</button>';
+        });
+        row.innerHTML = h2 + '</div><button type="button" class="chip sound-try">▶ 試しに鳴らす</button>';
+        row.querySelector('.sound-seg').addEventListener('click', function (ev) {
+          var b = ev.target.closest('.seg-btn'); if (!b) return;
+          S.settings.alarm = b.dataset.val; S.saveSettings();
+          global.OdaiTimer.setSound(b.dataset.val);
+          global.OdaiTimer.preview(b.dataset.val);
+          renderGameSettings();
+        });
+        row.querySelector('.sound-try').addEventListener('click', function () { global.OdaiTimer.preview(S.settings.alarm || 'chime'); });
       } else if (d.type === 'number') {
         row.innerHTML = '<div class="row-line"><label class="row-label nomb">' + esc(d.label) + '</label>' +
           counterHtml('nb', d.label, gs[d.key]) + '</div>';
@@ -1013,6 +1159,17 @@
       else revealNow();
     });
     $('rv-next').addEventListener('click', rvNext);
+
+    // ポイント結果 / 最終結果
+    $('rr-next').addEventListener('click', function () {
+      if (M.done) { showVictory(); return; }
+      M.round++;
+      if (M.onNext) M.onNext();
+    });
+    $('rr-end').addEventListener('click', function () {
+      confirmDialog('ゲームを終了して、今の合計で最終結果を表示しますか？', showVictory);
+    });
+    $('vc-again').addEventListener('click', function () { if (M.again) M.again(); else goTitle(); });
 
     // お題リスト
     $('btn-filter-fav').addEventListener('click', function () { ui.listFilter = (ui.listFilter === 'fav') ? 'all' : 'fav'; renderTopicList(); });

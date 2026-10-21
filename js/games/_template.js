@@ -40,17 +40,22 @@
     /* 見た目：css/themes.css に body[data-game="mygame"] の色・背景を追加すると、このゲームだけのデザインになります */
 
     /* タイトル画面のボタン（「ルール説明」は自動で付きます） */
+    /* タイトルの遊び方ボタン（① お題だけ表示 ② クイックスタート ③ フルゲーム）
+       クイック／フルは ctx.startMatch(mode, { targetDef, again }) で試合を開始し、
+       ctx.turn() で順番（全員が1回ずつ担当したら最初から）、ctx.nextTurn() で次の人へ。
+       フルゲームは ctx.roundResult({ pts:[...], head:'説明', onNext:fn }) を呼ぶと
+       ポイント結果画面 → 目標に届いたら勝利画面 を自動で表示します。
+       設定画面に「〇点先取」を出すには ctx.targetCard(box, { def: 5 }) */
     title: function (ctx, box) {
-      var row = document.createElement('div');
-      row.className = 'mode-row';
-      row.innerHTML = '<button class="btn-mode">ゲームスタート</button>';
-      row.querySelector('button').addEventListener('click', function () {
-        var e = ctx.drawEntry('odai', []);          // 設定（使用済み除外など）どおりに1件引く
-        if (!e) { ctx.toast('お題がありません', 1600); return; }
-        st.slot.start(e);                           // 表示中のお題だけが「使用済み」になる
-        ctx.show('play', { resetStack: true });
+      ctx.modeButtons(box, {
+        topic: { fn: function () {
+          var e = ctx.drawEntry('odai', []);          // 設定（使用済み除外など）どおりに1件引く
+          if (!e) { ctx.toast('お題がありません', 1600); return; }
+          st.slot.start(e);                           // 表示中のお題だけが「使用済み」になる
+          ctx.show('play', { resetStack: true });
+        } }
+        // quick: { fn: ... }, full: { fn: ... }
       });
-      box.appendChild(row);
     },
 
     rules: function (ctx) {

@@ -3,7 +3,7 @@
    すべて相対パスで登録（サブディレクトリ配置 / APK化に対応）
    ========================================================= */
 /* アプリを更新したら APP_VERSION を上げること（キャッシュが作り直されます） */
-var APP_VERSION = '1.1.1';
+var APP_VERSION = '1.2.0';
 var CACHE = 'odai-box-cache-' + APP_VERSION;
 var ASSETS = [
   './',
@@ -16,6 +16,7 @@ var ASSETS = [
   './js/core/timer.js',
   './js/core/app.js',
   './js/core/logos.js',
+  './js/core/illust.js',
   './js/pwa.js',
   /* ボードゲーム（ゲームを追加したらここにも追加） */
   './js/games/hodoyoku.js',

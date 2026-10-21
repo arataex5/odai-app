@@ -1,6 +1,6 @@
 {
   "name": "odai-box",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "private": true,
   "description": "お題ボックス - ボードゲームのお題表示アプリ（統括版）PWA / Capacitor で APK 化",
   "scripts": {
