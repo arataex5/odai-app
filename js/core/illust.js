@@ -32,6 +32,9 @@
       if (e === 'closed') out += '<path d="M-6.5 -39 h4 M2.5 -39 h4" class="il-face" stroke-width="1.6"/>';
       else if (e === 'happy') out += '<path d="M-7 -38 q2.5 -3 5 0 M2 -38 q2.5 -3 5 0" class="il-face" stroke-width="1.6" fill="none"/>';
       else out += '<circle cx="-4.5" cy="-39" r="1.7" class="il-eye"/><circle cx="4.5" cy="-39" r="1.7" class="il-eye"/>';
+      if (o.mask) out += '<path d="M-13 -44 Q0 -47.5 13 -44 L12.5 -35.5 Q0 -38 -12.5 -35.5 Z" fill="#2b2140"/>' +
+        '<ellipse cx="-4.6" cy="-40" rx="3" ry="2.3" fill="#fff"/><ellipse cx="4.6" cy="-40" rx="3" ry="2.3" fill="#fff"/>' +
+        '<circle cx="-3.8" cy="-40" r="1.3" fill="#1b1320"/><circle cx="5.4" cy="-40" r="1.3" fill="#1b1320"/>';
       var m = o.mouth || (e === 'sad' ? 'sad' : 'smile');
       if (m === 'o') out += '<circle cx="0" cy="-32.5" r="2" class="il-eye"/>';
       else if (m === 'flat') out += '<path d="M-3 -32.5 h6" class="il-face" stroke-width="1.5"/>';

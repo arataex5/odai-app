@@ -616,7 +616,8 @@
     return wrap;
   }
 
-  var M = { gid: null, mode: null, n: 0, names: [], total: [], round: 0, target: 0, unit: 'pt', again: null, label: '' };
+  var M = { gid: null, mode: null, n: 0, names: [], total: [], round: 0, target: 0, unit: 'pt', again: null, label: '', finish: null };
+  function finishMatch() { if (M.finish) M.finish(); else showVictory(); }
   function startMatch(g, mode, o) {
     o = o || {};
     var gs = S.gs(g.id);
@@ -629,6 +630,8 @@
     M.unit = o.unit || 'pt';
     M.again = o.again || null;
     M.label = o.turnLabel || '親';
+    M.finish = o.finish || null;      // 最終結果を独自画面で出すゲーム用（省略時は勝利画面）
+    M.done = false;
     return M;
   }
   /* 順番：全員が1回ずつ担当したら最初から */
@@ -636,32 +639,35 @@
     var i = M.n ? M.round % M.n : 0;
     return { idx: i, name: M.names[i], lap: Math.floor(M.round / Math.max(1, M.n)) + 1, pos: i + 1, n: M.n };
   }
-  /* ラウンドのポイントを加算して結果画面へ。o = { pts:[], head:'html', onNext:fn, shareWin:bool } */
+  /* ラウンドのポイントを加算して結果画面へ。
+     o = { pts:[], head:'html', onNext:fn, shareWin:bool,
+           done:bool（終了判定を自分でするとき）, goal:'html', nextLabel, roundHead:'html', noBar:bool } */
   function roundResult(o) {
     o.pts.forEach(function (p, i) { M.total[i] = (M.total[i] || 0) + (p || 0); });
     M.lastPts = o.pts.slice();
     M.onNext = o.onNext;
-    $('rr-round').innerHTML = '第' + (M.round + 1) + 'ラウンド　<b>' + M.target + M.unit + '先取</b>';
+    $('rr-round').innerHTML = o.roundHead != null ? o.roundHead : '第' + (M.round + 1) + 'ラウンド　<b>' + M.target + M.unit + '先取</b>';
     $('rr-head').innerHTML = o.head || '';
     var rows = M.names.map(function (nm, i) { return { i: i, nm: nm, pt: o.pts[i] || 0, total: M.total[i] }; });
     rows.sort(function (a, b) { return b.total - a.total || a.i - b.i; });
     var max = rows.length ? rows[0].total : 0;
     var leaders = rows.filter(function (r) { return r.total === max; });
     /* o.shareWin：陣営戦など同時に複数人が勝てるゲームは、同点トップもそのまま全員勝利 */
-    var done = max >= M.target && (leaders.length === 1 || !!o.shareWin);
+    var done = o.done != null ? !!o.done : max >= M.target && (leaders.length === 1 || !!o.shareWin);
     var rank = 0, prev = null;
     $('rr-list').innerHTML = rows.map(function (r, k) {
       if (r.total !== prev) { rank = k + 1; prev = r.total; }
-      var w = Math.min(100, Math.round(r.total / Math.max(1, M.target) * 100));
+      var w = Math.max(0, Math.min(100, Math.round(r.total / Math.max(1, M.target) * 100)));
+      var ptTxt = r.pt < 0 ? '−' + (-r.pt) : '+' + r.pt;
       return '<div class="rs-row' + (rank === 1 && r.total > 0 ? ' top' : '') + '">' +
         '<span class="rs-rank">' + rank + '位</span>' +
-        '<span class="rs-name">' + esc(r.nm) + '<span class="rr-bar"><i style="width:' + w + '%"></i></span></span>' +
-        '<span class="rs-pt' + (r.pt ? ' plus' : '') + '">+' + r.pt + '</span>' +
+        '<span class="rs-name">' + esc(r.nm) + (o.noBar ? '' : '<span class="rr-bar"><i style="width:' + w + '%"></i></span>') + '</span>' +
+        '<span class="rs-pt' + (r.pt > 0 ? ' plus' : r.pt < 0 ? ' minus' : '') + '">' + ptTxt + '</span>' +
         '<span class="rs-total">' + r.total + '</span></div>';
     }).join('');
-    $('rr-goal').innerHTML = done ? '🏆 <b>' + leaders.map(function (r) { return esc(r.nm); }).join('、') + '</b> さんが ' + M.target + M.unit + ' に到達！'
+    $('rr-goal').innerHTML = o.goal != null ? o.goal : done ? '🏆 <b>' + leaders.map(function (r) { return esc(r.nm); }).join('、') + '</b> さんが ' + M.target + M.unit + ' に到達！'
       : (max >= M.target ? '同点のトップがいるので延長戦！次のラウンドで決着' : 'トップまであと ' + (M.target - max) + M.unit);
-    $('rr-next').textContent = done ? '最終結果へ' : '次のラウンドへ';
+    $('rr-next').textContent = o.nextLabel || (done ? '最終結果へ' : '次のラウンドへ');
     M.done = done;
     show('roundres', { resetStack: true });
   }
@@ -693,7 +699,7 @@
         counterHtml('tg', o.label || '勝利に必要なポイント', gs[key]) + '<span class="unit">' + unit + '</span></div>' +
         (o.hint ? '<p class="row-hint">' + o.hint + '</p>' : '') + '</div>';
       bindCounter(box, 'tg', { min: min, max: max, get: function () { return gs[key]; },
-        apply: function (v) { gs[key] = v; S.saveSettings(); render(); } });
+        apply: function (v) { gs[key] = v; S.saveSettings(); render(); if (o.onChange) o.onChange(v); } });
     }
     render();
   }
@@ -756,7 +762,9 @@
       timer: function (container, sec, opts) { return global.OdaiTimer.create(container, sec, opts); },
       figFlow: figFlow,
       topbar: topbar,
-      normalize: normalize
+      normalize: normalize,
+      counterHtml: counterHtml,
+      bindCounter: bindCounter
     };
     ctxs[g.id] = c;
     return c;
@@ -946,11 +954,22 @@
       var lab = document.createElement('label');
       lab.className = 'af-label';
       lab.textContent = f.label + (i > 0 && !f.required ? '（任意）' : '');
-      var inp = document.createElement('input');
-      inp.type = 'text';
-      inp.maxLength = f.maxLength || 60;
+      var inp;
+      if (f.options) {          // 選択式（例：難易度）
+        inp = document.createElement('select');
+        inp.className = 'af-select';
+        f.options.forEach(function (op) {
+          var o = document.createElement('option');
+          o.value = op[0]; o.textContent = op[1];
+          inp.appendChild(o);
+        });
+      } else {
+        inp = document.createElement('input');
+        inp.type = 'text';
+        inp.maxLength = f.maxLength || 60;
+        inp.placeholder = f.placeholder || '';
+      }
       inp.dataset.key = f.key;
-      inp.placeholder = f.placeholder || '';
       inp.value = val;
       box.appendChild(lab);
       box.appendChild(inp);
@@ -1032,7 +1051,7 @@
     box.innerHTML = '';
     var gs = S.gs(cur.id);
     defs.forEach(function (d) {
-      if (d.showIf && !gs[d.showIf]) return;
+      if (d.showIf && (typeof d.showIf === 'function' ? !d.showIf(gs) : !gs[d.showIf])) return;
       var row = document.createElement('div');
       row.className = 'set-row' + (d.showIf ? ' indent' : '');
       if (d.type === 'bool') {
@@ -1163,12 +1182,12 @@
 
     // ポイント結果 / 最終結果
     $('rr-next').addEventListener('click', function () {
-      if (M.done) { showVictory(); return; }
+      if (M.done) { finishMatch(); return; }
       M.round++;
       if (M.onNext) M.onNext();
     });
     $('rr-end').addEventListener('click', function () {
-      confirmDialog('ゲームを終了して、今の合計で最終結果を表示しますか？', showVictory);
+      confirmDialog('ゲームを終了して、今の合計で最終結果を表示しますか？', finishMatch);
     });
     $('vc-again').addEventListener('click', function () { if (M.again) M.again(); else goTitle(); });
 
@@ -1186,7 +1205,7 @@
     $('add-form').addEventListener('submit', function (ev) {
       ev.preventDefault();
       var set = curSet(), text = '', x = {};
-      $$('#af-fields input').forEach(function (inp) {
+      $$('#af-fields input, #af-fields select').forEach(function (inp) {
         if (inp.dataset.key === 'text') text = inp.value.trim();
         else x[inp.dataset.key] = inp.value.trim();
       });
