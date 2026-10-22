@@ -636,7 +636,7 @@
     var i = M.n ? M.round % M.n : 0;
     return { idx: i, name: M.names[i], lap: Math.floor(M.round / Math.max(1, M.n)) + 1, pos: i + 1, n: M.n };
   }
-  /* ラウンドのポイントを加算して結果画面へ。o = { pts:[], head:'html', onNext:fn } */
+  /* ラウンドのポイントを加算して結果画面へ。o = { pts:[], head:'html', onNext:fn, shareWin:bool } */
   function roundResult(o) {
     o.pts.forEach(function (p, i) { M.total[i] = (M.total[i] || 0) + (p || 0); });
     M.lastPts = o.pts.slice();
@@ -647,7 +647,8 @@
     rows.sort(function (a, b) { return b.total - a.total || a.i - b.i; });
     var max = rows.length ? rows[0].total : 0;
     var leaders = rows.filter(function (r) { return r.total === max; });
-    var done = max >= M.target && leaders.length === 1;
+    /* o.shareWin：陣営戦など同時に複数人が勝てるゲームは、同点トップもそのまま全員勝利 */
+    var done = max >= M.target && (leaders.length === 1 || !!o.shareWin);
     var rank = 0, prev = null;
     $('rr-list').innerHTML = rows.map(function (r, k) {
       if (r.total !== prev) { rank = k + 1; prev = r.total; }
@@ -658,7 +659,7 @@
         '<span class="rs-pt' + (r.pt ? ' plus' : '') + '">+' + r.pt + '</span>' +
         '<span class="rs-total">' + r.total + '</span></div>';
     }).join('');
-    $('rr-goal').innerHTML = done ? '🏆 <b>' + esc(leaders[0].nm) + '</b> さんが ' + M.target + M.unit + ' に到達！'
+    $('rr-goal').innerHTML = done ? '🏆 <b>' + leaders.map(function (r) { return esc(r.nm); }).join('、') + '</b> さんが ' + M.target + M.unit + ' に到達！'
       : (max >= M.target ? '同点のトップがいるので延長戦！次のラウンドで決着' : 'トップまであと ' + (M.target - max) + M.unit);
     $('rr-next').textContent = done ? '最終結果へ' : '次のラウンドへ';
     M.done = done;
@@ -1064,10 +1065,10 @@
           S.setGs(cur.id, d.key, b.dataset.val); renderGameSettings();
         });
       } else if (d.type === 'sound') {
-        var cur = S.settings.alarm || 'chime', snd = global.OdaiTimer.sounds;
+        var curSnd = S.settings.alarm || 'chime', snd = global.OdaiTimer.sounds;
         var h2 = '<label class="row-label">' + esc(d.label || 'アラーム音') + '</label><div class="seg sound-seg">';
         Object.keys(snd).forEach(function (k) {
-          h2 += '<button type="button" class="seg-btn' + (cur === k ? ' on' : '') + '" data-val="' + k + '">' + esc(snd[k].label) + '</button>';
+          h2 += '<button type="button" class="seg-btn' + (curSnd === k ? ' on' : '') + '" data-val="' + k + '">' + esc(snd[k].label) + '</button>';
         });
         row.innerHTML = h2 + '</div><button type="button" class="chip sound-try">▶ 試しに鳴らす</button>';
         row.querySelector('.sound-seg').addEventListener('click', function (ev) {

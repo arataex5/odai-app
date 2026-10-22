@@ -180,12 +180,13 @@
   /* ---------------- ルール説明のイラスト ---------------- */
   function rulesIll(ctx) {
     var I = ctx.ill;
-    var s1 = I.svg(320, 150,
-      I.person(70, 132, { c: 0, hand: 'right', label: '親' }) +
-      I.phone(84, 52, 34, 52, I.card(88, 64, 26, 28, 'カレー', { size: 7.5, r: 3 })) +
-      I.bubble(16, 8, 112, 26, '黄色くてスパイシー！', 'br', { size: 10 }) +
-      I.person(190, 132, { c: 1, mouth: 'o' }) + I.person(240, 132, { c: 2 }) + I.person(290, 132, { c: 3, mouth: 'flat' }) +
-      I.bubble(166, 40, 48, 22, '？', 'b', { think: true }) + I.bubble(220, 30, 44, 22, '！', 'b', { think: true }) + I.bubble(268, 40, 44, 22, '？？', 'b', { think: true }),
+    var s1 = I.svg(320, 170,
+      I.phone(78, 82, 30, 46, I.card(81, 93, 24, 28, 'カレー', { size: 7, r: 3, sub: 'お題' })) +
+      I.person(56, 150, { c: 0, hand: 'right', label: '親' }) +
+      I.say(56, 150, '黄色くてスパイシー！', { dx: 40, dy: -30 }) +
+      I.person(186, 150, { c: 1, mouth: 'o' }) + I.say(186, 150, '？', { think: true, w: 34 }) +
+      I.person(240, 150, { c: 2 }) + I.say(240, 150, '！', { think: true, w: 34 }) +
+      I.person(294, 150, { c: 3, mouth: 'flat' }) + I.say(294, 150, '？？', { think: true, w: 40 }),
       '親だけがお題を見てヒントを出す');
     var row = function (y, oks, pp, label) {
       var out = I.text(8, y + 4, label, { anchor: 'start', size: 10, cls: 'il-dim' });

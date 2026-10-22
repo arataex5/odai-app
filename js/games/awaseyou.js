@@ -5,14 +5,15 @@
    ② クイックスタート：通常＝読み上げ役を順番に交代しながらお題を出す
                        人狼＝役職確認 → 話し合い → 結果発表 を何回でも
    ③ フルゲーム：通常＝協力。成功させる回数を決め、全員そろった回数が届いたらクリア（何回中何回成功かを表示）
-               人狼＝〇点先取。結果発表で「見つけた／逃げ切った」を選ぶ（村人 +1pt ／ 人狼 +2pt）
+               人狼＝〇点先取。お題ごとに役職を配り、せーので答える。そろえば市民陣営の勝ち。
+                     そろわなければ多数決で投票し、人狼が最多票なら市民陣営、そうでなければ人狼陣営の勝ち（勝った陣営に 1pt）
    ========================================================= */
 (function () {
   'use strict';
   var A = window.OdaiApp, T = A.topbar, esc = A.esc;
   var SID = 'odai';
 
-  var st = { mode: 'topic', q: 1, slot: null, wolves: [], wolfSees: 'none', topic: null,
+  var st = { mode: 'topic', q: 1, slot: null, wolves: [], wolfSees: 'none', topic: null, outcome: null, voted: -2,
     coop: { target: 5, rounds: 0, ok: 0, log: [] } };   // 通常モードのフルゲーム（協力）
 
   function isWolf(ctx) { return ctx.settings().mode === 'wolf'; }
@@ -27,8 +28,8 @@
     },
     wolf: {
       topic: { sub: 'お題を出すだけ（人狼なし）' },
-      quick: { sub: '役職確認→話し合い→結果発表を何回でも' },
-      full: { sub: '人狼を当てて〇点先取。村人と人狼の対決' }
+      quick: { sub: '役職確認→せーの→投票を何回でも' },
+      full: { sub: '勝った陣営に1pt。〇点先取' }
     }
   };
 
@@ -93,6 +94,23 @@
     }).join('');
   }
 
+  /* ---------------- 人狼モード：投票 ---------------- */
+  function renderVote(ctx) {
+    var sc = ctx.screen('vote'), m = M(ctx);
+    var box = sc.querySelector('.aw-v-list');
+    box.innerHTML = '';
+    m.names.forEach(function (nm, i) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'aw-pl vote' + (st.voted === i ? ' picked' : '');
+      b.innerHTML = '<span class="aw-pl-name">' + esc(nm) + '</span><span class="aw-pl-state">' + (st.voted === i ? '✓ 最多票' : 'この人') + '</span>';
+      b.addEventListener('click', function () { st.voted = i; renderVote(ctx); });
+      box.appendChild(b);
+    });
+    sc.querySelector('.aw-v-tie').classList.toggle('acc', st.voted === -1);
+    sc.querySelector('.aw-v-go').disabled = st.voted === -2;
+  }
+
   /* ---------------- 人狼モード ---------------- */
   function startWolfGame(ctx) {
     var m = M(ctx), gs = ctx.settings();
@@ -113,20 +131,20 @@
           var mates = st.wolves.filter(function (w) { return w !== i; }).map(function (w) { return m.names[w] + 'さん'; });
           var showTopic = !wolf || st.wolfSees === 'same';
           body.innerHTML =
-            '<div class="role-big ' + (wolf ? 'wolf' : 'villager') + '">' + (wolf ? '人狼' : '村人') + '</div>' +
+            '<div class="role-big ' + (wolf ? 'wolf' : 'villager') + '">' + (wolf ? '人狼' : '市民') + '</div>' +
             '<div class="role-topic"><span class="q">お題</span>' + (showTopic ? esc(st.topic.text) : '？？？') + '</div>' +
             '<p class="role-note">' + (wolf
               ? (st.wolfSees === 'same'
                   ? 'みんなの答えが<b>そろわないように</b>、こっそり答えをズラしましょう。人狼だとバレないように！'
                   : 'あなたには<b>お題が分かりません</b>。みんなの話し合いからお題を推理して、答えを合わせて正体を隠しましょう。')
                 + (mates.length ? '<br>仲間の人狼：<b>' + esc(mates.join('、')) + '</b>' : '')
-              : 'お題は<b>口に出さず</b>に話し合って、みんなと答えを合わせましょう。人狼に気をつけて！') + '</p>';
+              : 'お題は<b>口に出さず</b>に、せーので答えを合わせましょう。そろわなかったら、人狼を探す投票へ！') + '</p>';
           api.fit(body.querySelector('.role-topic'), 40, 16);
         }
       };
     });
     ctx.reveal({
-      items: items, progressLabel: '役職確認', lastLabel: '話し合いへ',
+      items: items, progressLabel: '役職確認', lastLabel: 'せーので答えよう',
       onDone: function () { ctx.show('talk', { resetStack: true }); }
     });
   }
@@ -134,20 +152,20 @@
   /* ---------------- ルール説明のイラスト ---------------- */
   function rulesIll(ctx) {
     var I = ctx.ill;
-    var s1 = I.svg(320, 150,
-      I.card(110, 4, 100, 26, 'おでんの具といえば？', { size: 9.5, r: 13 }) +
-      I.person(50, 136, { c: 0, eyes: 'happy' }) + I.person(120, 136, { c: 1, eyes: 'happy' }) +
-      I.person(200, 136, { c: 2, eyes: 'happy' }) + I.person(270, 136, { c: 3, mouth: 'o' }) +
-      I.bubble(22, 52, 56, 24, '大根', 'b') + I.bubble(92, 52, 56, 24, '大根', 'b') + I.bubble(172, 52, 56, 24, '大根', 'b') +
-      I.bubble(242, 52, 56, 24, 'ちくわ', 'b', { stroke: '#e5484d' }) +
-      I.mark(50, 44, true, 6) + I.mark(120, 44, true, 6) + I.mark(200, 44, true, 6) + I.mark(270, 44, false, 6),
+    var ppl = '', xs = [46, 120, 194, 268], ans = ['大根', '大根', '大根', 'ちくわ'];
+    xs.forEach(function (x, i) {
+      var ok = i < 3;
+      ppl += I.person(x, 156, { c: i, eyes: ok ? 'happy' : 'open', mouth: ok ? 'smile' : 'o' }) +
+        I.say(x, 156, ans[i], { stroke: ok ? 'currentColor' : '#e5484d' }) + I.mark(x, 52, ok, 7);
+    });
+    var s1 = I.svg(320, 172,
+      I.card(96, 4, 128, 28, 'おでんの具といえば？', { size: 10.5, r: 14 }) + ppl,
       '全員が同時に答えを言う。そろえば成功！');
-    var s2 = I.svg(320, 150,
-      '<circle cx="292" cy="22" r="13" fill="#f3d36b"/><circle cx="299" cy="17" r="12" style="fill:var(--bg2)"/>' +
-      I.person(60, 136, { c: 1, label: '村人' }) + I.person(130, 136, { c: 2, label: '村人' }) +
-      I.person(200, 136, { c: 4, ears: true, mouth: 'flat', label: '人狼' }) + I.person(270, 136, { c: 3, label: '村人' }) +
-      I.card(34, 40, 52, 30, 'お題', { size: 10, sub: '見える' }) + I.card(104, 40, 52, 30, 'お題', { size: 10, sub: '見える' }) +
-      I.card(174, 40, 52, 30, '？？？', { size: 11, stroke: '#9b6bff', sub: '分からない' }) + I.card(244, 40, 52, 30, 'お題', { size: 10, sub: '見える' }),
+    var s2 = I.svg(320, 160,
+      I.person(50, 146, { c: 1, label: '市民' }) + I.person(120, 146, { c: 2, label: '市民' }) +
+      I.person(190, 146, { c: 4, ears: true, mouth: 'flat', label: '人狼' }) + I.person(260, 146, { c: 3, label: '市民' }) +
+      I.card(24, 14, 52, 40, 'お題', { size: 11, sub: '見える' }) + I.card(94, 14, 52, 40, 'お題', { size: 11, sub: '見える' }) +
+      I.card(160, 14, 60, 40, '？？？', { size: 12, stroke: '#9b6bff', sub: '分からない' }) + I.card(234, 14, 52, 40, 'お題', { size: 11, sub: '見える' }),
       '人狼だけお題を知らない（設定で「見せる」にもできます）');
     return { s1: s1, s2: s2 };
   }
@@ -169,7 +187,7 @@
     ],
     defaults: { mode: 'normal', wolfCount: 1, wolfSees: 'none', target: 5 },
     help: {
-      wolf: ['人狼モード', 'プレイヤーの中に<b>人狼</b>がまぎれ込みます。役職確認画面で1人ずつ自分の役職とお題を確認し、話し合ってから一斉に答えを言います。最後に誰が人狼かを当てましょう。'],
+      wolf: ['人狼モード', 'お題ごとに役職（市民／人狼）を配ります。全員でせーので答えて、<b>そろえば市民陣営の勝ち</b>。そろわなかったら人狼はだれか話し合って<b>多数決</b>。人狼が最多票なら市民陣営、そうでなければ人狼陣営の勝ちです。'],
       sees: ['人狼に見せる内容', '<b>お題を見せない</b>：人狼はお題が分からないまま、みんなの話からお題を推理して答えを合わせます。<br><b>お題を見せる</b>：人狼もお題を知っていますが、目的は「みんなの答えがそろわないように、こっそりズラす」ことです。']
     },
     logoHtml: function (ctx) {
@@ -230,20 +248,21 @@
           '<li><b>フルゲーム（協力）</b>：はじめに「成功させる回数」を決めます。全員そろったら「全員そろった！」、ズレたら「ズレた…」をタップ。成功が目標に届いたらクリア！何回やって何回成功したかが表示されます。</li></ul>' +
         '</div>' +
         '<div class="rule-sec"><h3><span class="badge">3</span>人狼モード</h3>' +
-          '<p>タイトル画面のボタンで切り替えます。プレイヤーの中に<b>人狼</b>がまぎれ込みます。</p>' +
+          '<p>タイトル画面のボタンで切り替えます。<b>お題ごとに</b>役職（市民／人狼）を配り直すので、陣営は毎回変わります。</p>' +
           I.fig(il.s2, '役職確認では、スマホを回して1人ずつ自分の画面を見ます') +
+          '<div class="rule-fig">' + ctx.figFlow(['役職', 'せーの', 'そろった？', '投票', '勝敗'], ['1人ずつ確認', '全員で答える', 'そろえば市民勝ち', '多数決', '陣営に1pt']) + '</div>' +
           '<ul>' +
-            '<li><b>① 役職確認</b>：1人ずつ自分の役職（村人／人狼）とお題を確認します。</li>' +
-            '<li><b>② 話し合い</b>：お題そのものは口に出さずに、答えをそろえるための相談をします。</li>' +
-            '<li><b>③ せーの</b>：全員同時に答えを言います。</li>' +
-            '<li><b>④ 人狼さがし</b>：だれが人狼かを話し合って指名し、「結果発表」で人狼とお題を公開します。</li>' +
+            '<li><b>① 役職確認</b>：1人ずつ自分の役職とお題を確認します。</li>' +
+            '<li><b>② せーの</b>：お題に対して全員で同時に答えます。</li>' +
+            '<li><b>③ そろった！</b>：全員の答えがそろったら<b>市民陣営の勝ち</b>。</li>' +
+            '<li><b>④ 投票</b>：そろわなかったら、人狼はだれか話し合って<b>多数決</b>で投票します。<b>人狼が最多票</b>なら市民陣営の勝ち（人狼が複数いても、最多票が人狼ならOK）。最多票が市民、または同票で決まらなければ<b>人狼陣営の勝ち</b>。</li>' +
           '</ul>' +
-          '<p><b>人狼に見せる内容</b>（ゲーム設定で選択）：「お題を見せない」＝人狼は話し合いからお題を推理する／「お題を見せる」＝人狼は答えをこっそりズラすのが目的。</p>' +
-          '<p><b>フルゲーム</b>：人狼を見つけたら村人全員 <b>+1pt</b>、逃げ切ったら人狼 <b>+2pt</b>。</p>' +
+          '<p><b>人狼に見せる内容</b>（ゲーム設定で選択）：「お題を見せない」＝人狼はお題を知らずに答えを合わせる／「お題を見せる」＝人狼は答えをこっそりズラすのが目的。</p>' +
+          '<p><b>フルゲーム</b>：勝った陣営のメンバー全員に <b>+1pt</b>。〇点先取で勝敗を決めます。</p>' +
         '</div>' +
         ctx.modesRule({
           topic: 'お題画面だけを使います。「次のお題」で次へ（人狼モードでも人狼なしのお題表示になります）。',
-          quick: '点数なしで何回でも。通常は読み上げ役が順番に交代、人狼モードは役職確認→話し合い→結果発表をくり返します。',
+          quick: '点数なしで何回でも。通常は読み上げ役が順番に交代、人狼モードは役職確認→せーの→（投票）→結果発表をくり返します。',
           full: '通常モードは<b>みんなで協力</b>：成功させる回数を決めて挑戦し、クリアしたら「何回中何回成功」を表示。人狼モードは「〇点先取」の対決で、毎ラウンドのあとにポイント結果、最後に勝利画面。'
         });
     },
@@ -298,7 +317,7 @@
           var tg = sc.querySelector('.aw-target');
           tg.innerHTML = '';
           if (st.mode === 'full') {
-            if (wolf) ctx.targetCard(tg, { def: 5, hint: '人狼を見つけたら村人全員 +1pt、逃げ切ったら人狼 +2pt。' });
+            if (wolf) ctx.targetCard(tg, { def: 5, hint: '勝った陣営のメンバー全員に 1pt。陣営（役職）はお題ごとに変わります。' });
             else ctx.targetCard(tg, { key: 'coopTarget', def: 5, label: '成功させる回数', unit: '回', max: 50,
               hint: 'みんなで協力するモード。全員の答えがそろった回数が、この回数に届いたらクリア！' });
           }
@@ -327,7 +346,7 @@
             note: function (n) {
               if (!wolf) return '読み上げ役は <b class="c">順番どおりに交代</b>';
               var w = Math.min(gs.wolfCount, maxWolves(n));
-              return '役職配分：<b class="c">村人 ' + (n - w) + '人</b> ／ <b class="s" style="color:#b98cff">人狼 ' + w + '人</b>';
+              return '役職配分：<b class="c">市民 ' + (n - w) + '人</b> ／ <b class="s" style="color:#b98cff">人狼 ' + w + '人</b>（お題ごとに配り直し）';
             },
             onChange: function () { paintWc(); }
           });
@@ -341,39 +360,61 @@
       },
 
       talk: {
-        html: T({ back: 'title-confirm' }) +
+        html: T({ back: 'title-confirm', right: '<span class="tb-count aw-wq"></span>' }) +
           '<div class="stage">' +
             '<div class="odai-card aw-night"><span class="odai-kicker">人狼モード</span>' +
-              '<div class="odai-text" style="font-size:28px">話し合って<br>答えを合わせよう</div>' +
-              '<p class="odai-note">お題は役職確認で見たものです（口に出さないでね）。<br>相談が終わったら「せーの」で同時に答えを言い、<br>誰が人狼かを話し合って指名しましょう。</p>' +
+              '<div class="odai-text" style="font-size:30px">せーので<br>答えよう！</div>' +
+              '<p class="odai-note">お題は役職確認で見たものです（口に出さないでね）。<br>全員同時に答えを言って、そろったかどうかを選んでください。</p>' +
             '</div>' +
             '<p class="counter-pill aw-wc-note"></p>' +
           '</div>' +
-          '<div class="bottom-bar"><button class="btn-big aw-result">結果発表へ</button></div>',
+          '<div class="bottom-bar"><button class="btn-big sub aw-w-ng" style="flex:0 0 36%">ズレた…</button><button class="btn-big aw-w-ok">全員そろった！</button></div>',
         enter: function (ctx) {
-          ctx.screen('talk').querySelector('.aw-wc-note').textContent = '人狼は ' + st.wolves.length + ' 人 ／ ' + M(ctx).n + ' 人中';
+          var sc = ctx.screen('talk');
+          sc.querySelector('.aw-wc-note').textContent = '人狼は ' + st.wolves.length + ' 人 ／ ' + M(ctx).n + ' 人中';
+          sc.querySelector('.aw-wq').textContent = '第' + (M(ctx).round + 1) + 'ゲーム';
         }
+      },
+
+      vote: {
+        html: T({ back: 'title-confirm', right: '<span class="tb-count mode-chip">投票</span>' }) +
+          '<div class="scroll-area">' +
+            '<div class="lead-box">答えがそろいませんでした。<b>人狼はだれ？</b><br>話し合って多数決で投票し、<b>一番票が多かった人</b>を選んでください。</div>' +
+            '<div class="aw-j-list aw-v-list"></div>' +
+            '<button type="button" class="btn-mid aw-v-tie" style="width:100%;margin-top:10px">同票で決まらなかった</button>' +
+          '</div>' +
+          '<div class="bottom-bar"><button class="btn-big aw-v-go" disabled>結果発表へ</button></div>',
+        enter: function (ctx) { st.voted = -2; renderVote(ctx); }
       },
 
       result: {
         html: T({ back: 'title-confirm' }) +
           '<div class="scroll-area"><div class="stage top">' +
+            '<div class="aw-win"></div>' +
             '<div class="odai-card"><span class="odai-kicker">お題</span><div class="odai-text aw-topic"></div></div>' +
             '<div class="odai-card aw-night" style="min-height:0"><span class="odai-kicker">人狼は…</span>' +
               '<div class="wolf-list aw-wolves"></div></div>' +
-            '<div class="aw-verdict" hidden><p class="q-title">人狼を見つけられた？</p>' +
-              '<div class="btn-row"><button class="btn-mid acc aw-found">見つけた！<small>村人 +1pt</small></button>' +
-              '<button class="btn-mid aw-escaped">逃げ切られた<small>人狼 +2pt</small></button></div></div>' +
           '</div></div>' +
-          '<div class="bottom-bar aw-res-bar"><button class="btn-big sub aw-title" style="flex:0 0 34%">タイトルへ</button><button class="btn-big aw-again">次のゲームへ</button></div>',
+          '<div class="bottom-bar aw-res-bar"><button class="btn-big sub aw-title" style="flex:0 0 34%">タイトルへ</button><button class="btn-big aw-again">次のお題へ</button></div>' +
+          '<div class="bottom-bar aw-res-full" hidden><button class="btn-big aw-to-points">ポイント結果へ</button></div>',
         enter: function (ctx) {
-          var sc = ctx.screen('result');
+          var sc = ctx.screen('result'), m = M(ctx), o = st.outcome;
           var t = sc.querySelector('.aw-topic');
           t.textContent = st.topic.text;
           ctx.fitText(t, 34, 16);
-          sc.querySelector('.aw-wolves').innerHTML = st.wolves.map(function (w) { return '<span>' + esc(M(ctx).names[w]) + '</span>'; }).join('');
-          sc.querySelector('.aw-verdict').hidden = st.mode !== 'full';
+          sc.querySelector('.aw-wolves').innerHTML = st.wolves.map(function (w) { return '<span>' + esc(m.names[w]) + '</span>'; }).join('');
+          var why = o.how === 'match' ? '全員の答えがそろった！'
+            : o.how === 'hit' ? '投票で人狼（' + esc(m.names[o.voted]) + ' さん）が最多票！'
+            : o.how === 'miss' ? '最多票は ' + esc(m.names[o.voted]) + ' さん（市民）…人狼は逃げ切った！'
+            : '同票で決まらず、人狼は逃げ切った！';
+          sc.querySelector('.aw-win').innerHTML =
+            '<div class="aw-win-box ' + (o.win === 'citizen' ? 'citizen' : 'wolf') + '">' +
+              '<div class="aw-win-title">' + (o.win === 'citizen' ? '市民陣営の勝ち！' : '人狼陣営の勝ち！') + '</div>' +
+              '<p class="aw-win-why">' + why + '</p>' +
+              (st.mode === 'full' ? '<p class="aw-win-pt">勝った陣営のみんなに <b>+1pt</b></p>' : '') +
+            '</div>';
           sc.querySelector('.aw-res-bar').hidden = st.mode === 'full';
+          sc.querySelector('.aw-res-full').hidden = st.mode !== 'full';
         }
       }
     },
@@ -397,29 +438,43 @@
       var cl = ctx.screen('clear');
       cl.querySelector('.aw-cl-title').addEventListener('click', function () { ctx.goTitle(); });
       cl.querySelector('.aw-cl-again').addEventListener('click', function () { ctx.show('setup', { resetStack: true }); });
-      ctx.screen('talk').querySelector('.aw-result').addEventListener('click', function () {
-        ctx.confirm('結果を発表しますか？\n（人狼とお題が表示されます）', function () { ctx.show('result'); });
+      /* 人狼モード：せーの → そろった？ → （そろわなければ）投票 → 結果 */
+      var finish = function (outcome) { st.outcome = outcome; ctx.show('result', { resetStack: true }); };
+      var tk = ctx.screen('talk');
+      tk.querySelector('.aw-w-ok').addEventListener('click', function () {
+        ctx.confirm('全員の答えがそろいましたか？\n（市民陣営の勝ちになります）', function () { finish({ win: 'citizen', how: 'match' }); });
+      });
+      tk.querySelector('.aw-w-ng').addEventListener('click', function () { ctx.show('vote', { resetStack: true }); });
+      var vt = ctx.screen('vote');
+      vt.querySelector('.aw-v-tie').addEventListener('click', function () { st.voted = -1; renderVote(ctx); });
+      vt.querySelector('.aw-v-go').addEventListener('click', function () {
+        var m = M(ctx), v = st.voted;
+        var msg = v === -1 ? '同票で決まらなかった、で結果発表しますか？' : '一番票が多かったのは ' + m.names[v] + ' さんですね？';
+        ctx.confirm(msg, function () {
+          if (v === -1) finish({ win: 'wolf', how: 'tie' });
+          else if (st.wolves.indexOf(v) > -1) finish({ win: 'citizen', how: 'hit', voted: v });
+          else finish({ win: 'wolf', how: 'miss', voted: v });
+        });
       });
       var rs = ctx.screen('result');
       rs.querySelector('.aw-title').addEventListener('click', function () { ctx.goTitle(); });
       rs.querySelector('.aw-again').addEventListener('click', function () { ctx.nextTurn(); startWolfGame(ctx); });
-      var verdict = function (found) {
-        var m = M(ctx);
+      rs.querySelector('.aw-to-points').addEventListener('click', function () {
+        var m = M(ctx), o = st.outcome;
         var pts = m.names.map(function (n, i) {
           var wolf = st.wolves.indexOf(i) > -1;
-          return found ? (wolf ? 0 : 1) : (wolf ? 2 : 0);
+          return (o.win === 'wolf') === wolf ? 1 : 0;
         });
         var wn = st.wolves.map(function (w) { return m.names[w]; }).join('、');
         ctx.roundResult({
           pts: pts,
           head: '<div class="rr-topic">お題：<b>' + esc(st.topic.text) + '</b></div>' +
             '<p>人狼：<b>' + esc(wn) + '</b></p>' +
-            '<p>' + (found ? '人狼を見つけた！ 村人全員 <b class="pt">+1pt</b>' : '人狼が逃げ切った！ 人狼 <b class="pt">+2pt</b>') + '</p>',
+            '<p>' + (o.win === 'citizen' ? '市民陣営の勝ち！ 市民のみんなに <b class="pt">+1pt</b>' : '人狼陣営の勝ち！ 人狼に <b class="pt">+1pt</b>') + '</p>',
+          shareWin: true,
           onNext: function () { startWolfGame(ctx); }
         });
-      };
-      rs.querySelector('.aw-found').addEventListener('click', function () { verdict(true); });
-      rs.querySelector('.aw-escaped').addEventListener('click', function () { verdict(false); });
+      });
       window.addEventListener('odai:resize', function () {
         if (pl.classList.contains('active')) ctx.fitText(pl.querySelector('.odai-text'), 44, 18);
       });

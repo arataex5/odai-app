@@ -572,3 +572,20 @@ body.light .mode-chip{color:var(--accent);}
 .pt-seeno .y{color:var(--yes);font-weight:900;} .pt-seeno .n{color:var(--no);font-weight:900;}
 .pt-seeno small{display:block;font-size:11.5px;font-weight:700;color:var(--fg-dim);margin-top:2px;}
 .pt-rule{line-height:1.7;}
+
+/* v1.2.2：人狼モード（投票・勝敗） */
+.aw-pl.vote{border-color:var(--line);}
+.aw-pl.vote .aw-pl-state{color:var(--fg-dim);}
+.aw-pl.vote.picked{border-color:var(--accent-lt);background:rgba(var(--accent-rgb),.16);}
+.aw-pl.vote.picked .aw-pl-state{color:var(--accent-lt);}
+body.light .aw-pl.vote.picked .aw-pl-state{color:var(--accent);}
+.aw-win-box{text-align:center;padding:16px 12px;border-radius:20px;border:2px solid;}
+.aw-win-box.citizen{border-color:rgba(90,211,224,.6);background:linear-gradient(135deg,rgba(90,211,224,.18),rgba(90,211,224,.05));}
+.aw-win-box.wolf{border-color:rgba(179,155,255,.6);background:linear-gradient(135deg,rgba(123,85,240,.25),rgba(123,85,240,.06));}
+.aw-win-title{font-size:clamp(24px,7vw,32px);font-weight:900;}
+.aw-win-box.citizen .aw-win-title{color:var(--citizen);}
+.aw-win-box.wolf .aw-win-title{color:var(--accent-lt);}
+body.light .aw-win-box.wolf .aw-win-title{color:var(--accent);}
+.aw-win-why{margin:6px 0 0;font-size:14px;font-weight:700;line-height:1.6;}
+.aw-win-pt{margin:6px 0 0;font-size:13px;color:var(--fg-dim);}
+.aw-win-pt b{color:var(--accent2);}

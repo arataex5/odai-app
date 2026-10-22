@@ -84,6 +84,35 @@
       out += '<text x="' + (x + w / 2) + '" y="' + (y + h / 2 + 4) + '" text-anchor="middle" font-weight="800" font-size="' + (o.size || 11) + '" style="fill:' + (o.color || 'currentColor') + '">' + esc(text) + '</text>';
       return out;
     },
+    /* 人物の頭を指すセリフの吹き出し（位置は自動）。px,py = 人物の足もと
+       o: { s(人物の倍率), dx(左右のずらし), dy(上下のずらし・マイナスで上), size, stroke, color, think(考え中), W(図の横幅) } */
+    say: function (px, py, text, o) {
+      o = o || {};
+      var sc = o.s || 1, size = o.size || 11, W = o.W || 320;
+      var hx = px, hy = py - 52 * sc;                       // 頭のてっぺん
+      var len = 0; String(text).split('').forEach(function (ch) { len += ch.charCodeAt(0) > 255 ? 1 : 0.62; });
+      var w = o.w || Math.round(len * size + 22), h = o.h || Math.round(size * 2.3);
+      var by = hy - (o.think ? 22 : 14) - h + (o.dy || 0);
+      var bx = Math.max(4, Math.min(W - 4 - w, px - w / 2 + (o.dx || 0)));
+      var fill = o.fill || 'var(--bg2)', st = o.stroke || 'currentColor';
+      var out = '';
+      if (o.think) {
+        var cx = Math.max(bx + 10, Math.min(bx + w - 10, hx));
+        var mx = (cx + hx) / 2, my = (by + h + hy) / 2;
+        out += '<circle cx="' + mx + '" cy="' + (my - 2) + '" r="3.2" style="fill:' + fill + ';stroke:' + st + '" stroke-width="1.3"/>';
+        out += '<circle cx="' + ((mx + hx) / 2) + '" cy="' + (hy - 4) + '" r="1.9" style="fill:' + fill + ';stroke:' + st + '" stroke-width="1.2"/>';
+        out += '<rect x="' + bx + '" y="' + by + '" width="' + w + '" height="' + h + '" rx="' + (h / 2) + '" style="fill:' + fill + ';stroke:' + st + '" stroke-width="1.5"/>';
+      } else {
+        var tx = Math.max(bx + 12, Math.min(bx + w - 12, hx));
+        var tipX = hx + (tx - hx) * 0.25, tipY = hy - 3;
+        out += '<path d="M' + (tx - 6) + ' ' + (by + h - 1) + ' L' + tipX + ' ' + tipY + ' L' + (tx + 6) + ' ' + (by + h - 1) + '" style="fill:' + fill + ';stroke:' + st + '" stroke-width="1.5" stroke-linejoin="round"/>';
+        out += '<rect x="' + bx + '" y="' + by + '" width="' + w + '" height="' + h + '" rx="' + Math.min(10, h / 2) + '" style="fill:' + fill + ';stroke:' + st + '" stroke-width="1.5"/>';
+        out += '<rect x="' + (tx - 5) + '" y="' + (by + h - 3) + '" width="10" height="4" style="fill:' + fill + '"/>';
+      }
+      out += '<text x="' + (bx + w / 2) + '" y="' + (by + h / 2 + size * 0.36) + '" text-anchor="middle" font-weight="800" font-size="' + size + '" style="fill:' + (o.color || 'currentColor') + '">' + esc(text) + '</text>';
+      if (o.mark != null) out += I.mark(bx + w + 11, by + h / 2, o.mark, 7);
+      return out;
+    },
     text: function (x, y, t, o) {
       o = o || {};
       return '<text x="' + x + '" y="' + y + '" text-anchor="' + (o.anchor || 'middle') + '" font-size="' + (o.size || 11) + '" font-weight="' + (o.weight || 700) + '"' +

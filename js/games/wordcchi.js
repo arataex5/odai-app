@@ -157,20 +157,21 @@
   function rulesIll(ctx) {
     var I = ctx.ill;
     var s1 = I.svg(320, 150,
-      I.person(56, 136, { c: 3, hand: 'right', label: '親' }) +
-      I.card(84, 18, 92, 34, '切ないもの', { sub: '基準 1', size: 11, stroke: '#ff3d8b' }) +
-      I.card(84, 62, 92, 34, '強そうなもの', { sub: '基準 2', size: 11, stroke: 'currentColor' }) +
-      I.mark(176, 35, true, 7) +
-      I.arrow(186, 40, 214, 64) +
-      I.card(206, 64, 104, 38, '夕焼け', { sub: '暫定チャンピオン', size: 13, fill: '#ffd23f', color: '#1b1320', stroke: '#1b1320' }) +
-      I.text(258, 124, '3つのワードから1つ選ぶ', { size: 9.5, cls: 'il-dim' }),
+      I.person(48, 136, { c: 3, hand: 'right', label: '親' }) +
+      I.card(84, 16, 96, 36, '切ないもの', { sub: '基準 1', size: 11, stroke: '#ff3d8b' }) +
+      I.card(84, 62, 96, 36, '強そうなもの', { sub: '基準 2', size: 11, stroke: 'currentColor' }) +
+      I.mark(192, 34, true, 7) +
+      I.arrow(204, 40, 226, 58) +
+      I.card(212, 62, 100, 40, '夕焼け', { sub: '暫定チャンピオン', size: 13, fill: '#ffd23f', color: '#1b1320', stroke: '#1b1320' }) +
+      I.text(262, 120, '3つのワードから1つ選ぶ', { size: 9.5, cls: 'il-dim' }),
       '親は基準を秘密で選び、暫定チャンピオンを決める');
-    var s2 = I.svg(320, 160,
-      I.card(14, 20, 110, 44, '夕焼け', { sub: '👑 チャンピオン', size: 14, fill: '#ffd23f', color: '#1b1320', stroke: '#1b1320' }) +
-      I.text(160, 48, 'VS', { size: 20, weight: 900, color: '#ff3d8b' }) +
-      I.card(196, 20, 110, 44, '初恋', { sub: '子の挑戦', size: 14 }) +
-      I.person(160, 146, { c: 3, label: '親（判定）' }) + I.bubble(178, 82, 120, 26, '「初恋」の勝ち！', 'l', { size: 10.5 }) +
-      I.person(40, 146, { c: 1, eyes: 'happy' }) + I.person(90, 146, { c: 2, mouth: 'o' }),
+    var s2 = I.svg(320, 176,
+      I.card(14, 8, 112, 46, '夕焼け', { sub: '👑 チャンピオン', size: 14, fill: '#ffd23f', color: '#1b1320', stroke: '#1b1320' }) +
+      I.text(160, 38, 'VS', { size: 20, weight: 900, color: '#ff3d8b' }) +
+      I.card(194, 8, 112, 46, '初恋', { sub: '子の挑戦', size: 14 }) +
+      I.person(40, 162, { c: 1, mouth: 'o' }) + I.say(40, 162, '？', { think: true, w: 34 }) +
+      I.person(100, 162, { c: 2, eyes: 'happy' }) + I.say(100, 162, '初恋！', {}) +
+      I.person(236, 162, { c: 3, label: '親（判定）' }) + I.say(236, 162, '「初恋」の勝ち！', { dx: 4 }),
       '子はワードを言って挑戦。親が基準で勝ち負けを判定');
     return { s1: s1, s2: s2 };
   }

@@ -87,14 +87,13 @@
 
   function rulesIll(ctx) {
     var I = ctx.ill;
-    var s1 = I.svg(320, 170,
-      I.person(60, 156, { c: 0, hand: 'right', label: '説明する人' }) +
-      I.card(74, 70, 64, 30, 'エレベーター', { size: 8.5, stroke: 'var(--shu)', r: 3 }) +
-      I.bubble(110, 6, 200, 26, '上や下の階へ運んでくれる箱！', 'bl', { size: 10.5 }) + I.mark(300, 19, true, 7) +
-      I.bubble(110, 40, 200, 24, 'ドアが開いて…', 'bl', { size: 10.5, stroke: '#e5484d' }) + I.mark(300, 52, false, 7) +
-      I.text(226, 82, '「ドア」はカタカナ → アウト！', { size: 9.5, color: '#e5484d' }) +
-      I.person(200, 156, { c: 1, hand: 'up', eyes: 'happy' }) + I.person(260, 156, { c: 2, mouth: 'o' }) +
-      I.bubble(170, 100, 66, 22, 'わかった！', 'b', { size: 10 }),
+    var s1 = I.svg(320, 182,
+      I.phone(6, 30, 52, 62, I.card(10, 44, 44, 38, 'エレベーター', { size: 6.8, stroke: 'var(--shu)', r: 3, sub: 'お題' })) +
+      I.text(64, 16, '✗「ドアが開いて…」→「ドア」はカタカナでアウト！', { anchor: 'start', size: 9, color: '#e5484d' }) +
+      I.person(70, 166, { c: 0, eyes: 'happy', label: '説明する人' }) +
+      I.say(70, 166, '上や下の階へ運ぶ箱！', { dx: 70, dy: -34, mark: true }) +
+      I.person(224, 166, { c: 1, hand: 'up', eyes: 'happy' }) + I.say(224, 166, 'エレベーター？', {}) +
+      I.person(292, 166, { c: 2, mouth: 'o' }),
       'ひらがな・漢字の言葉だけで説明する');
     return { s1: s1 };
   }

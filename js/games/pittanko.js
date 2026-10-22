@@ -60,15 +60,14 @@
 
   function rulesIll(ctx) {
     var I = ctx.ill;
-    var yes = 'var(--yes)', no = 'var(--no)';
-    var s1 = I.svg(320, 160,
-      I.person(40, 146, { c: 4, hand: 'right', label: '出題者' }) +
-      I.bubble(8, 6, 168, 28, 'Q. 朝ごはんはパン派だ', 'bl', { size: 11 }) +
-      I.person(130, 146, { c: 2, hand: 'up', eyes: 'happy' }) + I.person(180, 146, { c: 2, hand: 'up', eyes: 'happy' }) +
-      I.person(240, 146, { c: 3, mouth: 'flat' }) + I.person(290, 146, { c: 3, mouth: 'flat' }) +
-      I.badge(155, 62, 'YES 2', '#3d8bff') + I.badge(265, 62, 'NO 2', '#ff6b5b') +
-      '<path d="M210 50 V150" stroke="currentColor" stroke-dasharray="4 4" opacity=".35"/>' +
-      I.text(258, 26, 'はんはん！', { size: 14, weight: 900, color: 'var(--accent2)' }),
+    var s1 = I.svg(320, 176,
+      I.person(40, 158, { c: 4, label: '出題者' }) +
+      I.say(40, 158, 'Q. 朝ごはんはパン派だ', { dx: 56, dy: -44 }) +
+      I.text(262, 30, 'はんはん！', { size: 15, weight: 900, color: 'var(--accent2)' }) +
+      I.badge(155, 82, 'YES 2', '#3d8bff') + I.badge(265, 82, 'NO 2', '#ff6b5b') +
+      I.person(130, 158, { c: 2, hand: 'up', eyes: 'happy' }) + I.person(180, 158, { c: 2, hand: 'up', eyes: 'happy' }) +
+      '<path d="M210 70 V160" stroke="currentColor" stroke-dasharray="4 4" opacity=".35"/>' +
+      I.person(240, 158, { c: 3, mouth: 'flat' }) + I.person(290, 158, { c: 3, mouth: 'flat' }),
       'YES と NO がちょうど同じ数になれば成功');
     return { s1: s1 };
   }
