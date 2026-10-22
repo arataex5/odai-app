@@ -1,8 +1,8 @@
 {
   "available": true,
   "file": "odai-box.apk",
-  "size": 6698869,
-  "version": "1.2.0",
-  "built": "2026-10-21T23:35:52.277Z",
-  "signed": "debug"
+  "size": 5310872,
+  "version": "1.2.1",
+  "built": "2026-10-22T00:08:54.142Z",
+  "signed": "release"
 }
