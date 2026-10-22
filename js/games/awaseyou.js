@@ -4,15 +4,16 @@
    ① お題だけ表示：お題画面のみ（人狼モードでも同じ）
    ② クイックスタート：通常＝読み上げ役を順番に交代しながらお題を出す
                        人狼＝役職確認 → 話し合い → 結果発表 を何回でも
-   ③ フルゲーム（〇点先取）：通常＝答え合わせでズレた人を選ぶ（そろった人 +1pt）
-                           人狼＝結果発表で「見つけた／逃げ切った」を選ぶ（村人 +1pt ／ 人狼 +2pt）
+   ③ フルゲーム：通常＝協力。成功させる回数を決め、全員そろった回数が届いたらクリア（何回中何回成功かを表示）
+               人狼＝〇点先取。結果発表で「見つけた／逃げ切った」を選ぶ（村人 +1pt ／ 人狼 +2pt）
    ========================================================= */
 (function () {
   'use strict';
   var A = window.OdaiApp, T = A.topbar, esc = A.esc;
   var SID = 'odai';
 
-  var st = { mode: 'topic', q: 1, slot: null, wolves: [], wolfSees: 'none', topic: null, diff: [] };
+  var st = { mode: 'topic', q: 1, slot: null, wolves: [], wolfSees: 'none', topic: null,
+    coop: { target: 5, rounds: 0, ok: 0, log: [] } };   // 通常モードのフルゲーム（協力）
 
   function isWolf(ctx) { return ctx.settings().mode === 'wolf'; }
   function maxWolves(n) { return Math.max(1, Math.min(3, Math.floor((n - 1) / 2))); }
@@ -22,7 +23,7 @@
     normal: {
       topic: { sub: 'お題を出すだけ。判定・点数なし' },
       quick: { sub: '点数なしで気軽に。読み上げ役は順番に交代' },
-      full: { sub: 'ズレなかった人に1pt。〇点先取で勝敗' }
+      full: { sub: 'みんなで協力。〇回そろえたらクリア' }
     },
     wolf: {
       topic: { sub: 'お題を出すだけ（人狼なし）' },
@@ -53,29 +54,43 @@
       who.hidden = false;
       who.innerHTML = '読み上げ：<b>' + esc(t.name) + '</b> さん<span class="turn-pos">（' + t.pos + ' / ' + t.n + ' 人目）</span>';
     }
-    sc.querySelector('.aw-next').textContent = st.mode === 'full' ? '答え合わせへ' : '次のお題';
+    var coop = st.mode === 'full';
+    sc.querySelector('.aw-bar-one').hidden = coop;
+    sc.querySelector('.aw-bar-coop').hidden = !coop;
+    sc.querySelector('.aw-end').hidden = !coop;
+    var pr = sc.querySelector('.aw-progress');
+    pr.hidden = !coop;
+    if (coop) {
+      var c = st.coop, dots = '';
+      for (var i = 0; i < c.target; i++) dots += '<i class="' + (i < c.ok ? 'on' : '') + '"></i>';
+      pr.innerHTML = '<span class="ap-dots">' + dots + '</span><span class="ap-txt">成功 <b>' + c.ok + '</b> / ' + c.target + '　（' + (c.rounds + 1) + '回目）</span>';
+    }
     var tx = sc.querySelector('.odai-text');
     tx.textContent = e.topic.text;
     ctx.fitText(tx, 44, 18);
   }
 
-  /* ---------------- 通常：答え合わせ（フルゲーム） ---------------- */
-  function renderAwJudge(ctx) {
-    var sc = ctx.screen('judge');
-    var m = M(ctx);
-    sc.querySelector('.aw-j-topic').textContent = st.slot.current().topic.text;
-    var box = sc.querySelector('.aw-j-list');
-    box.innerHTML = '';
-    m.names.forEach(function (nm, i) {
-      var b = document.createElement('button');
-      b.type = 'button';
-      b.className = 'aw-pl' + (st.diff[i] ? ' diff' : '');
-      b.innerHTML = '<span class="aw-pl-name">' + esc(nm) + '</span><span class="aw-pl-state">' + (st.diff[i] ? '× ズレた' : '○ そろった') + '</span>';
-      b.addEventListener('click', function () { st.diff[i] = !st.diff[i]; renderAwJudge(ctx); });
-      box.appendChild(b);
-    });
-    var ok = m.names.filter(function (n, i) { return !st.diff[i]; }).length;
-    sc.querySelector('.aw-j-sum').innerHTML = ok === m.n ? '🎉 <b>全員そろった！</b>' : 'そろった人 <b>' + ok + '</b> 人 ／ ' + m.n + ' 人';
+  /* ---------------- 通常：協力フルゲームの結果 ---------------- */
+  function coopAnswer(ctx, ok) {
+    var c = st.coop;
+    c.rounds++;
+    if (ok) c.ok++;
+    c.log.push({ text: st.slot.current().topic.text, ok: ok });
+    if (c.ok >= c.target) { var tt = document.getElementById('toast'); if (tt) tt.hidden = true; ctx.show('clear', { resetStack: true }); return; }
+    ctx.toast(ok ? '🎉 そろった！ あと ' + (c.target - c.ok) + ' 回でクリア' : 'おしい！ 次はそろえよう', 1500);
+    ctx.nextTurn();
+    nextTopic(ctx);
+  }
+  function renderClear(ctx) {
+    var sc = ctx.screen('clear'), c = st.coop;
+    var cleared = c.ok >= c.target;
+    sc.querySelector('.cl-title').textContent = cleared ? 'クリア！' : 'ゲーム終了';
+    sc.querySelector('.cl-cup').textContent = cleared ? '🎉' : '🏁';
+    sc.querySelector('.cl-main').innerHTML = '<b>' + c.rounds + '</b> 回やって <b>' + c.ok + '</b> 回成功！';
+    sc.querySelector('.cl-sub').textContent = '目標 ' + c.target + ' 回' + (c.rounds ? '　／　成功率 ' + Math.round(c.ok / c.rounds * 100) + '%' : '') + (cleared ? '' : '（途中で終了）');
+    sc.querySelector('.cl-log').innerHTML = c.log.map(function (l, i) {
+      return '<li class="' + (l.ok ? 'ok' : 'ng') + '"><span class="cl-n">' + (i + 1) + '</span><span class="cl-t">' + esc(l.text) + '</span><span class="cl-r">' + (l.ok ? '○ そろった' : '× ズレた') + '</span></li>';
+    }).join('');
   }
 
   /* ---------------- 人狼モード ---------------- */
@@ -212,7 +227,7 @@
           '<ul><li>お題を読み上げます（クイック・フルゲームでは読み上げ役が順番に交代）。</li>' +
           '<li>「せーの」で同時に答えを言い、全員そろえば成功です。</li>' +
           '<li>「チェンジ」でお題を変えられ、チェンジした後は「一つ戻す／一つ進む」で行き来できます。</li>' +
-          '<li><b>フルゲーム</b>：答え合わせで、ほかの人と答えが<b>ズレた人</b>をタップ。ズレなかった人が <b>+1pt</b>。</li></ul>' +
+          '<li><b>フルゲーム（協力）</b>：はじめに「成功させる回数」を決めます。全員そろったら「全員そろった！」、ズレたら「ズレた…」をタップ。成功が目標に届いたらクリア！何回やって何回成功したかが表示されます。</li></ul>' +
         '</div>' +
         '<div class="rule-sec"><h3><span class="badge">3</span>人狼モード</h3>' +
           '<p>タイトル画面のボタンで切り替えます。プレイヤーの中に<b>人狼</b>がまぎれ込みます。</p>' +
@@ -229,33 +244,37 @@
         ctx.modesRule({
           topic: 'お題画面だけを使います。「次のお題」で次へ（人狼モードでも人狼なしのお題表示になります）。',
           quick: '点数なしで何回でも。通常は読み上げ役が順番に交代、人狼モードは役職確認→話し合い→結果発表をくり返します。',
-          full: '「〇点先取」で勝敗を決めます。毎ラウンドのあとにポイント結果、目標に届いたら最終結果（勝利画面）。'
+          full: '通常モードは<b>みんなで協力</b>：成功させる回数を決めて挑戦し、クリアしたら「何回中何回成功」を表示。人狼モードは「〇点先取」の対決で、毎ラウンドのあとにポイント結果、最後に勝利画面。'
         });
     },
 
     screens: {
       play: {
-        html: T({ back: 'title-confirm', right: '<span class="tb-count aw-q"></span>' }) +
+        html: T({ back: 'title-confirm', right: '<span class="tb-count aw-q"></span><button class="chip aw-end" hidden>終了</button>' }) +
           '<div class="stage">' +
+            '<div class="aw-progress" hidden></div>' +
             '<p class="who-line aw-who" hidden></p>' +
             '<div class="odai-card aw-bubble"><div class="odai-text"></div></div>' +
             '<p class="odai-note aw-sei">せーので答えを言おう！全員そろえば成功</p>' +
             '<div class="aw-chg"></div>' +
           '</div>' +
-          '<div class="bottom-bar"><button class="btn-big aw-next">次のお題</button></div>',
+          '<div class="bottom-bar aw-bar-one"><button class="btn-big aw-next">次のお題</button></div>' +
+          '<div class="bottom-bar aw-bar-coop" hidden><button class="btn-big sub aw-ng" style="flex:0 0 36%">ズレた…</button><button class="btn-big aw-ok">全員そろった！</button></div>',
         enter: function (ctx) { renderPlay(ctx); }
       },
 
-      judge: {
-        html: T({ back: 'title-confirm', right: '<span class="tb-count mode-chip">答え合わせ</span>' }) +
+      clear: {
+        html: T({ back: 'title' }) +
           '<div class="scroll-area">' +
-            '<div class="odai-card aw-bubble" style="min-height:0"><div class="odai-text aw-j-topic" style="font-size:24px"></div></div>' +
-            '<div class="lead-box">答えがほかの人と<b>ズレた人</b>をタップしてください。ズレなかった人に <b>+1pt</b>。</div>' +
-            '<div class="aw-j-list"></div>' +
-            '<p class="score-line aw-j-sum"></p>' +
+            '<div class="vc-hero cl-hero"><div class="vc-confetti" aria-hidden="true"></div>' +
+              '<div class="vc-cup cl-cup" aria-hidden="true">🎉</div>' +
+              '<div class="vc-title cl-title"></div>' +
+              '<p class="cl-main"></p><p class="vc-sub cl-sub"></p></div>' +
+            '<p class="q-title">これまでのお題</p>' +
+            '<ol class="cl-log"></ol>' +
           '</div>' +
-          '<div class="bottom-bar"><button class="btn-big aw-j-next">ポイント結果へ</button></div>',
-        enter: function (ctx) { renderAwJudge(ctx); }
+          '<div class="bottom-bar"><button class="btn-big sub aw-cl-title" style="flex:0 0 36%">タイトルへ</button><button class="btn-big aw-cl-again">もう一度遊ぶ</button></div>',
+        enter: function (ctx) { renderClear(ctx); }
       },
 
       setup: {
@@ -278,8 +297,11 @@
           sc.querySelector('.aw-start').textContent = wolf ? '役職確認画面へ' : 'ゲーム開始';
           var tg = sc.querySelector('.aw-target');
           tg.innerHTML = '';
-          if (st.mode === 'full') ctx.targetCard(tg, { def: 5,
-            hint: wolf ? '人狼を見つけたら村人全員 +1pt、逃げ切ったら人狼 +2pt。' : '答えがズレなかった人に +1pt。' });
+          if (st.mode === 'full') {
+            if (wolf) ctx.targetCard(tg, { def: 5, hint: '人狼を見つけたら村人全員 +1pt、逃げ切ったら人狼 +2pt。' });
+            else ctx.targetCard(tg, { key: 'coopTarget', def: 5, label: '成功させる回数', unit: '回', max: 50,
+              hint: 'みんなで協力するモード。全員の答えがそろった回数が、この回数に届いたらクリア！' });
+          }
           var paintWc = function () {
             var mx = maxWolves(ctx.playerCount());
             if (gs.wolfCount > mx) gs.wolfCount = mx;
@@ -311,8 +333,9 @@
           });
           sc.querySelector('.aw-start').onclick = function () {
             ctx.startMatch(st.mode, { targetDef: 5, again: function () { ctx.show('setup', { resetStack: true }); } });
-            if (wolf) { st.topic = null; startWolfGame(ctx); }
-            else if (nextTopic(ctx)) ctx.show('play', { resetStack: true });
+            if (wolf) { st.topic = null; startWolfGame(ctx); return; }
+            st.coop = { target: gs.coopTarget || 5, rounds: 0, ok: 0, log: [] };
+            if (nextTopic(ctx)) ctx.show('play', { resetStack: true });
           };
         }
       },
@@ -363,22 +386,17 @@
       });
       ctx.changeBar(pl.querySelector('.aw-chg'), st.slot);
       pl.querySelector('.aw-next').addEventListener('click', function () {
-        if (st.mode === 'full') { st.diff = M(ctx).names.map(function () { return false; }); ctx.show('judge'); return; }
         if (st.mode === 'quick') ctx.nextTurn(); else st.q++;
         nextTopic(ctx);
       });
-      var jd = ctx.screen('judge');
-      jd.querySelector('.aw-j-next').addEventListener('click', function () {
-        var m = M(ctx);
-        var pts = m.names.map(function (n, i) { return st.diff[i] ? 0 : 1; });
-        var ok = pts.filter(Boolean).length;
-        ctx.roundResult({
-          pts: pts,
-          head: '<div class="rr-topic">お題：<b>' + esc(st.slot.current().topic.text) + '</b></div>' +
-            '<p>' + (ok === m.n ? '🎉 全員そろった！ 全員 <b class="pt">+1pt</b>' : 'そろった人 ' + ok + ' 人に <b class="pt">+1pt</b>') + '</p>',
-          onNext: function () { if (nextTopic(ctx)) ctx.show('play', { resetStack: true }); }
-        });
+      pl.querySelector('.aw-ok').addEventListener('click', function () { coopAnswer(ctx, true); });
+      pl.querySelector('.aw-ng').addEventListener('click', function () { coopAnswer(ctx, false); });
+      pl.querySelector('.aw-end').addEventListener('click', function () {
+        ctx.confirm('ゲームを終了して結果を表示しますか？', function () { ctx.show('clear', { resetStack: true }); });
       });
+      var cl = ctx.screen('clear');
+      cl.querySelector('.aw-cl-title').addEventListener('click', function () { ctx.goTitle(); });
+      cl.querySelector('.aw-cl-again').addEventListener('click', function () { ctx.show('setup', { resetStack: true }); });
       ctx.screen('talk').querySelector('.aw-result').addEventListener('click', function () {
         ctx.confirm('結果を発表しますか？\n（人狼とお題が表示されます）', function () { ctx.show('result'); });
       });

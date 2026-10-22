@@ -684,15 +684,15 @@
   /* ゲーム設定画面に置く「〇点先取」カード（フルゲームのときだけ表示） */
   function targetCard(g, box, o) {
     o = o || {};
-    var gs = S.gs(g.id);
-    if (!gs.target) gs.target = o.def || 10;
+    var gs = S.gs(g.id), key = o.key || 'target';
+    if (!gs[key]) gs[key] = o.def || 10;
     var min = o.min || 1, max = o.max || 99, unit = o.unit || 'pt';
     function render() {
       box.innerHTML = '<div class="card target-card"><div class="row-line"><label class="row-label nomb">' + esc(o.label || '勝利に必要なポイント') + '</label>' +
-        counterHtml('tg', o.label || '勝利に必要なポイント', gs.target) + '<span class="unit">' + unit + '</span></div>' +
+        counterHtml('tg', o.label || '勝利に必要なポイント', gs[key]) + '<span class="unit">' + unit + '</span></div>' +
         (o.hint ? '<p class="row-hint">' + o.hint + '</p>' : '') + '</div>';
-      bindCounter(box, 'tg', { min: min, max: max, get: function () { return gs.target; },
-        apply: function (v) { gs.target = v; S.saveSettings(); render(); } });
+      bindCounter(box, 'tg', { min: min, max: max, get: function () { return gs[key]; },
+        apply: function (v) { gs[key] = v; S.saveSettings(); render(); } });
     }
     render();
   }

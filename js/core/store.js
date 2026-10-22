@@ -8,7 +8,7 @@
   'use strict';
 
   /* アプリを更新したら sw.js の APP_VERSION と一緒に上げること */
-  var APP_VERSION = '1.2.0';
+  var APP_VERSION = '1.2.1';
 
   /* Androidアプリ（APK）の配布設定（LINQ と同じ仕組み）
      mode : 'auto' … download/apk-info.json があるときだけ導線を出す（推奨）

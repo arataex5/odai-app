@@ -3,6 +3,7 @@
    遊び方：① お題だけ表示（テーマ＋質問例）
            ② クイックスタート（出題者を順番に交代。点数なし）
            ③ フルゲーム（はんはん成功で出題者に 1pt。〇点先取）
+   回答する人：参加者が偶数なら出題者も回答、奇数なら出題者は回答しない（回答者はいつも偶数）
    チェンジ／一つ戻す／一つ進む あり
    ========================================================= */
 (function () {
@@ -12,6 +13,14 @@
   var st = { mode: 'topic', k: 1, slot: null };
 
   function M(ctx) { return ctx.match(); }
+  /* 参加者 n 人のときの回答者数（偶数→出題者も回答／奇数→出題者は回答しない） */
+  function answerCount(n) { return n % 2 === 0 ? n : n - 1; }
+  function ruleLine(n) {
+    if (!n) return '参加者が<b>偶数</b>なら出題者も回答、<b>奇数</b>なら出題者は回答しません';
+    var a = answerCount(n);
+    return '参加者 ' + n + '人（' + (n % 2 ? '奇数' : '偶数') + '）→ 出題者は' + (n % 2 ? '<b>回答しない</b>' : '<b>回答する</b>') +
+      '<br>回答 ' + a + '人：<span class="y">YES ' + (a / 2) + '人</span>・<span class="n">NO ' + (a / 2) + '人</span> でぴったんこ！';
+  }
 
   function nextTheme(ctx) {
     var c = st.slot.current();
@@ -35,6 +44,7 @@
       who.hidden = false;
       who.innerHTML = '出題者：<b>' + esc(t.name) + '</b> さん<span class="turn-pos">（' + t.pos + ' / ' + t.n + ' 人目）</span>';
     }
+    sc.querySelector('.pt-rule').innerHTML = ruleLine(st.mode === 'topic' ? 0 : M(ctx).n);
     sc.querySelector('.pt-bar-one').hidden = st.mode === 'full';
     sc.querySelector('.pt-bar-full').hidden = st.mode !== 'full';
     sc.querySelector('.pt-next').textContent = st.mode === 'quick' ? '次の出題者へ' : '次のテーマ';
@@ -102,16 +112,17 @@
       return '' +
         '<div class="rule-sec"><h3><span class="badge">1</span>どんなゲーム？</h3>' +
           '<p>出題者がテーマに沿った<b>YES／NOで答えられる質問</b>をして、みんなの答えが<b>ちょうど半分ずつ</b>（はんはん）になれば成功です。</p>' +
-          I.fig(il.s1, '回答者が4人なら、YES 2人・NO 2人で成功') +
+          I.fig(il.s1, '5人（奇数）のときは出題者は答えず、4人で YES 2人・NO 2人なら成功') +
         '</div>' +
         '<div class="rule-sec"><h3><span class="badge">2</span>遊び方</h3>' +
           '<ul>' +
             '<li><b>① テーマ</b>：お題画面に「ゲーム」「占い・オカルト」のような大きなテーマが表示されます。</li>' +
             '<li><b>② 質問</b>：出題者はテーマに沿った質問を考えて読み上げます。下の<b>質問例</b>をそのまま使ってもOK。</li>' +
-            '<li><b>③ 回答</b>：ほかの人は正直に YES か NO で答えます（指で出す・手を挙げるなど）。</li>' +
+            '<li><b>③ 回答</b>：<b>せーの</b>で全員同時に、正直に YES か NO を出します（指で出す・手を挙げるなど）。</li>' +
+            '<li><b>回答する人</b>：参加者が<b>偶数</b>なら出題者も回答、<b>奇数</b>なら出題者は回答しません（回答する人数がいつも偶数になります）。</li>' +
             '<li><b>④ 判定</b>：YES と NO がちょうど同じ数になれば成功！</li>' +
           '</ul>' +
-          '<p>テーマが合わないときは「チェンジ」。チェンジした後は「一つ戻す／一つ進む」で前のテーマと行き来できます。回答者が奇数のときは、出題者も答えに加わるなど人数に合わせて調整してください。</p>' +
+          '<p>テーマが合わないときは「チェンジ」。チェンジした後は「一つ戻す／一つ進む」で前のテーマと行き来できます。</p>' +
         '</div>' +
         ctx.modesRule({
           topic: 'テーマと質問例を表示するだけ。「次のテーマ」で次へ。',
@@ -148,7 +159,8 @@
             '<div class="odai-card theme-card"><span class="pt-half" aria-hidden="true">½</span><div class="odai-text"></div></div>' +
             '<p class="q-title">質問例</p>' +
             '<ul class="q-list"></ul>' +
-            '<p class="odai-note pt-goal"><span class="y">YES</span> と <span class="n">NO</span> がちょうど半分ずつになる質問をしよう</p>' +
+            '<div class="pt-seeno"><b>せーの</b>で <span class="y">YES</span>／<span class="n">NO</span> を出そう！<small>指で出す・手を挙げるなど、全員同時に</small></div>' +
+            '<p class="odai-note pt-goal pt-rule"></p>' +
             '<div class="pt-chg"></div>' +
           '</div></div>' +
           '<div class="bottom-bar pt-bar-one"><button class="btn-big pt-next">次のテーマ</button></div>' +

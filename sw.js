@@ -3,7 +3,7 @@
    すべて相対パスで登録（サブディレクトリ配置 / APK化に対応）
    ========================================================= */
 /* アプリを更新したら APP_VERSION を上げること（キャッシュが作り直されます） */
-var APP_VERSION = '1.2.0';
+var APP_VERSION = '1.2.1';
 var CACHE = 'odai-box-cache-' + APP_VERSION;
 var ASSETS = [
   './',
